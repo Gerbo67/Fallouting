@@ -8,12 +8,11 @@ namespace Project.Game.Enemies.Scripts
     public abstract class EnemyBase : EntityAbstract
     {
         protected EnemyAI ai;
-        protected Transform playerTransform; // Hacemos accesible el target para los hijos
+        protected Transform playerTransform;
 
         protected virtual void Awake()
         {
             ai = GetComponent<EnemyAI>();
-            // Obtenemos la referencia al jugador aquí para que esté disponible para los hijos.
             GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
             if (playerObject != null)
             {
@@ -29,11 +28,6 @@ namespace Project.Game.Enemies.Scripts
             }
         }
 
-        // Se ha eliminado OnCollisionEnter. El daño por colisión simple es un comportamiento
-        // demasiado genérico. Es mejor que cada enemigo defina su método de ataque
-        // (por trigger, por contacto en un estado específico, etc.).
-        // El SlimeBigEnemy ahora usa OnTriggerEnter2D para su ataque de dash.
-
         public override void Die()
         {
             Debug.Log(gameObject.name + " ha sido derrotado.");
@@ -44,7 +38,6 @@ namespace Project.Game.Enemies.Scripts
                 if (agent != null) agent.isStopped = true;
             }
 
-            // Aumentamos el tiempo de destrucción para dar tiempo a la máquina de estados de detenerse.
             Destroy(gameObject, 2f);
         }
     }

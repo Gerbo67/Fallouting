@@ -1,67 +1,84 @@
 ﻿using System.Collections;
 using Project.Core.Interfaces;
+using Project.Game.Enemies.Scripts;
 using Project.Game.Systems;
 using UnityEngine;
 
-namespace Project.Game.Enemies.Scripts
+public class SlimeState_Dash : IState
 {
-    public class SlimeState_Dash : IState
+    private readonly SlimeBigEnemy owner;
+    private readonly StateMachine stateMachine;
+    private Coroutine dashCoroutine;
+
+    public SlimeState_Dash(SlimeBigEnemy owner, StateMachine stateMachine)
     {
-        private readonly SlimeBigEnemy owner;
-        private readonly StateMachine stateMachine;
+        this.owner = owner;
+        this.stateMachine = stateMachine;
+    }
 
-        public SlimeState_Dash(SlimeBigEnemy owner, StateMachine stateMachine)
+    public void Enter()
+    {
+        dashCoroutine = owner.StartCoroutine(PerformDash());
+    }
+
+    public void Execute()
+    {
+    }
+
+    public void Exit()
+    {
+        if (dashCoroutine != null)
         {
-            this.owner = owner;
-            this.stateMachine = stateMachine;
+            owner.StopCoroutine(dashCoroutine);
         }
+    }
 
-        public void Enter()
+    private IEnumerator PerformDash()
+    {
+        if (owner.PlayerTarget == null)
         {
-            owner.StartCoroutine(PerformDash());
-        }
-
-        public void Execute()
-        {
-            // La lógica está en la corrutina, no se necesita nada en el Execute.
-        }
-
-        public void Exit() { }
-
-        private IEnumerator PerformDash()
-        {
-            if (owner.PlayerTarget == null)
-            {
-                // Si no hay objetivo, volver a idle inmediatamente.
-                stateMachine.ChangeState(owner.IdleState);
-                yield break;
-            }
-
-            Vector2 startPosition = owner.transform.position;
-            Vector2 targetPosition = owner.PlayerTarget.position;
-            float distance = Vector2.Distance(startPosition, targetPosition);
-            float duration = distance / owner.dashSpeed;
-            float elapsedTime = 0;
-
-            // Las animaciones y eventos ya se encargan de activar el collider de ataque.
-
-            while (elapsedTime < duration)
-            {
-                float percentage = elapsedTime / duration;
-                owner.transform.position = Vector2.Lerp(startPosition, targetPosition, percentage);
-
-                float scaleEffect = 1.0f + (Mathf.Sin(percentage * Mathf.PI) * (owner.dashScaleMultiplier - 1.0f));
-                owner.spriteTransform.localScale = owner.initialScale * scaleEffect;
-
-                elapsedTime += Time.deltaTime;
-                yield return null;
-            }
-
-            owner.transform.position = targetPosition;
-            owner.spriteTransform.localScale = owner.initialScale;
-
-            // Transicionar de vuelta al estado de reposo.
             stateMachine.ChangeState(owner.IdleState);
+            yield break;
         }
+
+        Vector2 startPosition = owner.transform.position;
+        Vector2 targetPosition = owner.PlayerTarget.position;
+
+        var direction = (targetPosition - startPosition).normalized;
+        var distanceToTarget = Vector2.Distance(startPosition, targetPosition);
+
+        // --- Detección de Colisión con Raycast ---
+        // Lanzamos un sensor circular desde el inicio para ver si hay un obstáculo en el camino.
+        RaycastHit2D hit = Physics2D.CircleCast(startPosition, owner.attackColliderRadius, direction, distanceToTarget,
+            owner.collisionLayers);
+
+        if (hit.collider != null)
+        {
+            targetPosition = hit.point - direction * (owner.attackColliderRadius * 0.9f);
+        }
+        // -----------------------------------------
+
+        float distance = Vector2.Distance(startPosition, targetPosition);
+        float duration = distance / owner.dashSpeed;
+        float elapsedTime = 0;
+
+        while (elapsedTime < duration)
+        {
+            var percentage = elapsedTime / duration;
+            owner.EnemyAI.GetComponent<Rigidbody2D>()
+                .MovePosition(Vector2.Lerp(startPosition, targetPosition, percentage));
+
+            var scaleEffect = 1.0f + (Mathf.Sin(percentage * Mathf.PI) * (owner.dashScaleMultiplier - 1.0f));
+            owner.spriteTransform.localScale = owner.initialScale * scaleEffect;
+
+            elapsedTime += Time.fixedDeltaTime;
+            yield return new WaitForFixedUpdate();
+        }
+
+        // Limpieza
+        owner.EnemyAI.GetComponent<Rigidbody2D>().MovePosition(targetPosition);
+        owner.spriteTransform.localScale = owner.initialScale;
+
+        stateMachine.ChangeState(owner.IdleState);
     }
 }

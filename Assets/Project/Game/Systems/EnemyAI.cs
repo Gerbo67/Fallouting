@@ -16,7 +16,7 @@ namespace Project.Game.Systems
             agent.updateRotation = false;
             agent.updateUpAxis = false;
 
-            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+            var playerObject = GameObject.FindGameObjectWithTag("Player");
             if (playerObject != null)
             {
                 playerTransform = playerObject.transform;
@@ -30,7 +30,6 @@ namespace Project.Game.Systems
 
         void Update()
         {
-            // Solo perseguir si el agente está activo y tiene un objetivo.
             if (canUpdate && playerTransform != null && agent.isStopped == false)
             {
                 agent.SetDestination(playerTransform.position);

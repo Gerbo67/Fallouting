@@ -9,16 +9,16 @@ namespace Project.Game.Player.Scripts
     [RequireComponent(typeof(PlayerAnimator))]
     public class Player : EntityAbstract
     {
-        public PlayerInputHandler InputHandler { get; private set; }
-        public PlayerMovement Movement { get; private set; }
-        public PlayerAnimator Animator { get; private set; }
+        private PlayerInputHandler InputHandler { get; set; }
+        private PlayerMovement Movement { get; set; }
+        private PlayerAnimator Animator { get; set; }
 
         void Awake()
         {
             InputHandler = GetComponent<PlayerInputHandler>();
             Movement = GetComponent<PlayerMovement>();
             Animator = GetComponent<PlayerAnimator>();
-            
+
             health = 100;
             damage = 25;
             moveSpeed = 5f;
@@ -27,7 +27,7 @@ namespace Project.Game.Player.Scripts
         void Start()
         {
             Movement.Initialize(moveSpeed);
-            
+
             InputHandler.onMove.AddListener(OnMoveInput);
             InputHandler.onMoveCanceled.AddListener(OnMoveCanceled);
         }

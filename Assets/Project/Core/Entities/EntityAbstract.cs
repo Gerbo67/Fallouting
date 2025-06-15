@@ -25,7 +25,7 @@ namespace Project.Core.Entities
 
             health -= damageAmount;
 
-            // Mathf.Max asegura que la vida nunca caiga por debajo de 0.
+            // Asegurar que la vida nunca caiga por debajo de 0.
             if (health <= 0)
             {
                 health = 0;
@@ -38,7 +38,7 @@ namespace Project.Core.Entities
         /// <summary>
         /// Comportamiento al morir. La implementación base destruye el objeto.
         /// Es 'virtual' para que las clases hijas puedan añadir efectos de muerte
-        /// específicos (partículas, sonidos, etc.) antes de llamar a la lógica base.
+        /// antes de llamar a la lógica base.
         /// </summary>
         public virtual void Die()
         {

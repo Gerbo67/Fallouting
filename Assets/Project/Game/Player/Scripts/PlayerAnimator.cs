@@ -18,7 +18,7 @@ namespace Project.Game.Player.Scripts
         /// </summary>
         public void UpdateMoveAnimation(Vector2 moveInput)
         {
-            bool isRunning = moveInput.sqrMagnitude > 0.01f;
+            var isRunning = moveInput.sqrMagnitude > 0.01f;
             animator.SetBool("isRun", isRunning);
 
             if (isRunning)

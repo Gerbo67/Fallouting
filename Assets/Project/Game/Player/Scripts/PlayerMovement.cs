@@ -19,7 +19,7 @@ namespace Project.Game.Player.Scripts
         /// </summary>
         public void Initialize(float speed)
         {
-            this.moveSpeed = speed;
+            moveSpeed = speed;
         }
 
         void FixedUpdate()

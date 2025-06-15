@@ -22,9 +22,16 @@ namespace Project.Game.Enemies.Scripts
         public float dashSpeed = 10f;
         [Tooltip("Qué tanto crece el sprite para simular el salto. 1.2 = 120% del tamaño original")]
         public float dashScaleMultiplier = 1.25f;
+        
+        [Header("Parámetros de Colisión del Dash")]
+        [Tooltip("Las capas con las que el slime debe chocar durante su dash (ej. paredes, obstáculos).")]
+        public LayerMask collisionLayers;
+        [Tooltip("El radio del collider de ataque, para usarlo en la detección de colisiones.")]
+        public float attackColliderRadius = 0.5f;
+
 
         // --- Máquina de Estados y Estados ---
-        public StateMachine StateMachine { get; private set; }
+        private StateMachine StateMachine { get; set; }
         public SlimeState_Idle IdleState { get; private set; }
         public SlimeState_Chasing ChasingState { get; private set; }
         public SlimeState_Anticipation AnticipationState { get; private set; }
@@ -62,12 +69,11 @@ namespace Project.Game.Enemies.Scripts
         void Start()
         {
             base.Start();
-            StateMachine.Initialize(IdleState); // Iniciar la FSM en el estado Idle
+            StateMachine.Initialize(IdleState);
         }
 
         void Update()
         {
-            // Delegamos toda la lógica de comportamiento a la máquina de estados.
             StateMachine.Tick();
         }
 
