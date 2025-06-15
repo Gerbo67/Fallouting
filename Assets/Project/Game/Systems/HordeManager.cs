@@ -2,11 +2,15 @@
 using Project.Core.Data;
 using System.Collections.Generic;
 using Project.Game.Enemies.Scripts;
+using TMPro;
 
 namespace Project.Game.Systems
 {
     public class HordeManager : MonoBehaviour
     {
+        [Header("Referencias de UI")] [Tooltip("El objeto de texto que mostrará la horda actual.")] [SerializeField]
+        private TextMeshProUGUI roundText;
+
         [Header("Referencias")]
         [Tooltip("La fábrica de slimes que se usará para instanciar enemigos.")]
         [SerializeField]
@@ -73,6 +77,13 @@ namespace Project.Game.Systems
         {
             currentRound = roundNumber;
             KillAllEnemies();
+
+            // --- ACTUALIZAR TEXTO DE UI ---
+            if (roundText != null)
+            {
+                roundText.text = $"{currentRound}";
+            }
+            // -----------------------------
 
             var enemyCount = Mathf.Min(initialEnemyCount + (currentRound - 1) * enemiesPerRoundIncrease, maxEnemies);
 
@@ -199,6 +210,14 @@ namespace Project.Game.Systems
             }
 
             activeEnemies.Clear();
+        }
+
+        /// <summary>
+        /// Inicia la siguiente ronda. Este método está diseñado para ser llamado por un botón de UI.
+        /// </summary>
+        public void GoToNextRoundButton()
+        {
+            StartNewRound(currentRound + 1);
         }
     }
 }
