@@ -219,5 +219,14 @@ namespace Project.Game.Systems
         {
             StartNewRound(currentRound + 1);
         }
+
+        /// <summary>
+        /// Inicia la ronda anterior. Este método está diseñado para ser llamado por un botón de UI.
+        /// </summary>
+        public void GoToPreviousRoundButton()
+        {
+            int previousRound = Mathf.Max(1, currentRound - 1);
+            StartNewRound(previousRound);
+        }
     }
 }
