@@ -149,27 +149,39 @@ namespace Project.Game.Systems
         /// </summary>
         private void ConfigureSpawnedSlime(GameObject slimeInstance, SlimeStats baseStats)
         {
-            var enemyScript = slimeInstance.GetComponent<EnemyBase>();
-            if (enemyScript == null) return;
+            var slimeController = slimeInstance.GetComponent<SlimeEnemy>();
+            if (slimeController == null)
+            {
+                Debug.LogError($"[HordeManager] El prefab {slimeInstance.name} no tiene el componente SlimeEnemy.");
+                return;
+            }
 
             // --- Este es tu "método base" de cálculo ---
             // 1. Obtener valores aleatorios de la base
-            var walkSpeed = Random.Range(baseStats.minWalkSpeed, baseStats.maxWalkSpeed);
-            var dashForce = Random.Range(baseStats.minDashForce, baseStats.maxDashForce);
-            var attackDelay = Random.Range(baseStats.minAttackDelay, baseStats.maxAttackDelay);
+            float randomWalkSpeed = Random.Range(baseStats.minWalkSpeed, baseStats.maxWalkSpeed);
+            float randomDashForce = Random.Range(baseStats.minDashForce, baseStats.maxDashForce);
+            float randomAttackDelay = Random.Range(baseStats.minAttackDelay, baseStats.maxAttackDelay);
 
             // 2. Aplicar multiplicadores
-            walkSpeed *= walkSpeedMultiplier * globalDifficultyMultiplier;
-            dashForce *= dashForceMultiplier * globalDifficultyMultiplier;
-            attackDelay *= attackDelayMultiplier * globalDifficultyMultiplier;
+            float finalMoveSpeed = randomWalkSpeed * globalDifficultyMultiplier;
+            float finalDashSpeed = randomDashForce * globalDifficultyMultiplier;
+
+            float finalAttackDelay = randomAttackDelay / (attackDelayMultiplier * globalDifficultyMultiplier);
 
             // 3. Calcular daño
-            var finalDamage = Mathf.RoundToInt(dashForce * 0.5f);
+            var finalDamage = Mathf.RoundToInt(finalDashSpeed * 0.5f);
 
-            // 4. Aplicar los stats al script del enemigo
+            // Vida se hardcodea a 10 para todos los slimes (no hay sistema de vida aun)
+            slimeController.health = 10;
+            slimeController.damage = finalDamage;
+            slimeController.moveSpeed = finalMoveSpeed;
+            slimeController.dashSpeed = finalDashSpeed;
+            slimeController.attackDelay = finalAttackDelay;
+
             Debug.Log(
-                $"Creado {slimeInstance.name} con Vel: {walkSpeed:F1}, Fuerza Dash: {dashForce:F1}, Daño: {finalDamage}");
+                $"Slime configurado: {slimeInstance.name} con Vel: {finalMoveSpeed:F2}, Delay: {finalAttackDelay:F2}");
         }
+
 
         /// <summary>
         /// Devuelve el ScriptableObject de estadísticas correspondiente a un tipo de enemigo.

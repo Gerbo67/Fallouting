@@ -4,31 +4,34 @@ using UnityEngine;
 
 namespace Project.Game.Enemies.Scripts
 {
-    public sealed class SlimeBigEnemy : EnemyBase
+    public sealed class SlimeEnemy : EnemyBase
     {
-        [Header("Referencias de Componentes")]
-        [Tooltip("El objeto hijo que contiene el SpriteRenderer y el Animator.")]
+        [Header("Referencias de Componentes")] [Tooltip("El objeto hijo que contiene el SpriteRenderer y el Animator.")]
         public Transform spriteTransform;
+
         [Tooltip("El objeto hijo que actúa como collider de reposo.")]
         public GameObject idleColliderObject;
+
         [Tooltip("El objeto hijo que actúa como collider de ataque (trigger).")]
         public GameObject attackColliderObject;
 
         [Header("Parámetros de Comportamiento")]
-        public float minIdleTime = 1f;
-        public float maxIdleTime = 3f;
         public float attackRange = 5f;
+
         public float dashAnticipationTime = 1f;
-        public float dashSpeed = 10f;
+        public float dashSpeed;
+
         [Tooltip("Qué tanto crece el sprite para simular el salto. 1.2 = 120% del tamaño original")]
         public float dashScaleMultiplier = 1.25f;
-        
+
+        public float attackDelay;
+
         [Header("Parámetros de Colisión del Dash")]
         [Tooltip("Las capas con las que el slime debe chocar durante su dash (ej. paredes, obstáculos).")]
         public LayerMask collisionLayers;
+
         [Tooltip("El radio del collider de ataque, para usarlo en la detección de colisiones.")]
         public float attackColliderRadius = 0.5f;
-
 
         // --- Máquina de Estados y Estados ---
         private StateMachine StateMachine { get; set; }
@@ -36,7 +39,7 @@ namespace Project.Game.Enemies.Scripts
         public SlimeState_Chasing ChasingState { get; private set; }
         public SlimeState_Anticipation AnticipationState { get; private set; }
         public SlimeState_Dash DashingState { get; private set; }
-        
+
         // --- Propiedades públicas para acceso desde los estados ---
         public EnemyAI EnemyAI => ai;
         public Transform PlayerTarget => playerTransform;
@@ -47,15 +50,10 @@ namespace Project.Game.Enemies.Scripts
         {
             base.Awake();
 
-            // Definición de estadísticas específicas.
-            health = 50;
-            damage = 15;
-            moveSpeed = 3f;
-
             // --- Inicialización de la Máquina de Estados ---
             StateMachine = new StateMachine();
 
-            IdleState = new SlimeState_Idle(this, StateMachine, minIdleTime, maxIdleTime);
+            IdleState = new SlimeState_Idle(this, StateMachine);
             ChasingState = new SlimeState_Chasing(this, StateMachine, attackRange);
             AnticipationState = new SlimeState_Anticipation(this, StateMachine, dashAnticipationTime);
             DashingState = new SlimeState_Dash(this, StateMachine);
@@ -78,7 +76,7 @@ namespace Project.Game.Enemies.Scripts
         }
 
         /// <summary>
-        /// Activa el collider de ataque y desactiva el de reposo. Llamado por Animation Event.
+        /// Activa el collider de ataque y desactiva el collider de idle.
         /// </summary>
         public void ActivateAttackCollider()
         {
@@ -87,7 +85,7 @@ namespace Project.Game.Enemies.Scripts
         }
 
         /// <summary>
-        /// Activa el collider de reposo y desactiva el de ataque. Llamado por Animation Event.
+        /// Activa el collider de idle y desactiva el collider de ataque.
         /// </summary>
         public void ActivateIdleCollider()
         {
@@ -95,9 +93,6 @@ namespace Project.Game.Enemies.Scripts
             if (attackColliderObject) attackColliderObject.SetActive(false);
         }
 
-        /// <summary>
-        /// Gira el sprite del enemigo para encarar al jugador.
-        /// </summary>
         public void FacePlayer()
         {
             if (PlayerTarget == null) return;
@@ -115,8 +110,7 @@ namespace Project.Game.Enemies.Scripts
             Debug.Log("El Slime Grande se disuelve en un charco pegajoso.");
             base.Die();
         }
-        
-        // El daño ahora se gestiona con un trigger para el ataque de dash.
+
         private void OnTriggerEnter2D(Collider2D other)
         {
             if (attackColliderObject.activeInHierarchy && other.CompareTag("Player"))

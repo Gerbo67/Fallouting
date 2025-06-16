@@ -6,12 +6,12 @@ namespace Project.Game.Enemies.Scripts
 {
     public class SlimeState_Anticipation : IState
     {
-        private readonly SlimeBigEnemy owner;
+        private readonly SlimeEnemy owner;
         private readonly StateMachine stateMachine;
         private readonly float anticipationTime;
         private float anticipationTimer;
 
-        public SlimeState_Anticipation(SlimeBigEnemy owner, StateMachine stateMachine, float anticipationTime)
+        public SlimeState_Anticipation(SlimeEnemy owner, StateMachine stateMachine, float anticipationTime)
         {
             this.owner = owner;
             this.stateMachine = stateMachine;

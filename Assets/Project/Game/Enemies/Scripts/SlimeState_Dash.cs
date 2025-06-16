@@ -6,11 +6,11 @@ using UnityEngine;
 
 public class SlimeState_Dash : IState
 {
-    private readonly SlimeBigEnemy owner;
+    private readonly SlimeEnemy owner;
     private readonly StateMachine stateMachine;
     private Coroutine dashCoroutine;
 
-    public SlimeState_Dash(SlimeBigEnemy owner, StateMachine stateMachine)
+    public SlimeState_Dash(SlimeEnemy owner, StateMachine stateMachine)
     {
         this.owner = owner;
         this.stateMachine = stateMachine;

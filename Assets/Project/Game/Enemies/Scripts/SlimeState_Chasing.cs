@@ -6,11 +6,11 @@ namespace Project.Game.Enemies.Scripts
 {
     public class SlimeState_Chasing : IState
     {
-        private readonly SlimeBigEnemy owner;
+        private readonly SlimeEnemy owner;
         private readonly StateMachine stateMachine;
         private readonly float attackRange;
 
-        public SlimeState_Chasing(SlimeBigEnemy owner, StateMachine stateMachine, float attackRange)
+        public SlimeState_Chasing(SlimeEnemy owner, StateMachine stateMachine, float attackRange)
         {
             this.owner = owner;
             this.stateMachine = stateMachine;

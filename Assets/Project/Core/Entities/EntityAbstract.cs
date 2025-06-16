@@ -8,9 +8,9 @@ namespace Project.Core.Entities
     /// </summary>
     public abstract class EntityAbstract : MonoBehaviour
     {
-        protected int health;
-        protected int damage;
-        protected float moveSpeed;
+        public int health;
+        public int damage;
+        public float moveSpeed;
 
         /// <summary>
         /// Reduce la vida de la entidad por una cantidad de daño.

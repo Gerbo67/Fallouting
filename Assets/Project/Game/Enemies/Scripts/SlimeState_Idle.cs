@@ -6,26 +6,23 @@ namespace Project.Game.Enemies.Scripts
 {
     public class SlimeState_Idle : IState
     {
-        private readonly SlimeBigEnemy owner;
+        private readonly SlimeEnemy owner;
         private readonly StateMachine stateMachine;
         private float idleTimer;
-        private readonly float minIdleTime;
-        private readonly float maxIdleTime;
 
-        public SlimeState_Idle(SlimeBigEnemy owner, StateMachine stateMachine, float minIdleTime, float maxIdleTime)
+        public SlimeState_Idle(SlimeEnemy owner, StateMachine stateMachine)
         {
             this.owner = owner;
             this.stateMachine = stateMachine;
-            this.minIdleTime = minIdleTime;
-            this.maxIdleTime = maxIdleTime;
         }
 
         public void Enter()
         {
             owner.ActivateIdleCollider();
-            owner.EnemyAI.Stop(); // Detener al agente NavMesh
+            owner.EnemyAI.Stop();
             owner.Anim?.SetBool("IsChasing", false);
-            idleTimer = Random.Range(minIdleTime, maxIdleTime);
+
+            idleTimer = owner.attackDelay;
         }
 
         public void Execute()
@@ -37,6 +34,8 @@ namespace Project.Game.Enemies.Scripts
             }
         }
 
-        public void Exit() { }
+        public void Exit()
+        {
+        }
     }
 }
