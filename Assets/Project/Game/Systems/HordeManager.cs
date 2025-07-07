@@ -1,211 +1,110 @@
 ﻿using UnityEngine;
-using Project.Core.Data;
+using Project.Core.Data; // Necesario para EnemyType
 using System.Collections.Generic;
-using Project.Game.Enemies.Scripts;
+using Project.Game.Systems.Director;
+using System.Linq;
 using TMPro;
 
 namespace Project.Game.Systems
 {
     public class HordeManager : MonoBehaviour
     {
-        [Header("Referencias de UI")] [Tooltip("El objeto de texto que mostrará la horda actual.")] [SerializeField]
-        private TextMeshProUGUI roundText;
+        [Header("Configuración Central")]
+        [Tooltip("Referencia al GameObject que contiene el MasterFactory y las sub-fábricas.")]
+        [SerializeField] private MasterEnemyFactory masterFactory;
 
-        [Header("Referencias")]
-        [Tooltip("La fábrica de slimes que se usará para instanciar enemigos.")]
-        [SerializeField]
-        private SlimeFactory slimeFactory;
+        [Header("Configuración de Ronda")]
+        [SerializeField] private int currentRound = 1;
+        [SerializeField] private TextMeshProUGUI roundText;
+        
+        [Header("Dificultad")]
+        [Tooltip("Multiplicador global que afecta los stats generados para los enemigos.")]
+        [Range(0.5f, 5f)] public float globalDifficultyMultiplier = 1f;
 
-        [Header("Configuración de Rondas")]
-        [Tooltip("La ronda actual. Cambiarla en el Inspector y presionar Play iniciará esa ronda.")]
-        [SerializeField]
-        private int currentRound = 1;
+        // --- Referencias Internas ---
+        private NeeplyDirector _neeply;
+        private List<GameObject> _activeEnemies = new List<GameObject>();
+        private Transform _playerTransform;
 
-        [SerializeField] private int initialEnemyCount = 4;
-        [SerializeField] private int enemiesPerRoundIncrease = 2;
-        [SerializeField] private int maxEnemies = 28;
-
-        [Header("Configuración de Tipos de Enemigos por Ronda")]
-        [Tooltip("Ronda a partir de la cual pueden aparecer slimes medianos.")]
-        [SerializeField]
-        private int startRoundForMedium = 5;
-
-        [Tooltip("Ronda a partir de la cual pueden aparecer slimes grandes.")] [SerializeField]
-        private int startRoundForBig = 12;
-
-        [Header("Datos de Estadísticas")] [SerializeField]
-        private SlimeStats bigSlimeBaseStats;
-
-        [SerializeField] private SlimeStats mediumSlimeBaseStats;
-        [SerializeField] private SlimeStats littleSlimeBaseStats;
-
-        [Header("Multiplicadores de Dificultad")]
-        [Tooltip("Multiplicador general que afecta a todas las estadísticas.")]
-        [Range(0.1f, 5f)]
-        public float globalDifficultyMultiplier = 1f;
-
-        [Tooltip("Multiplicador específico para la velocidad de caminar.")] [Range(0.1f, 5f)]
-        public float walkSpeedMultiplier = 1f;
-
-        [Tooltip("Multiplicador específico para la fuerza del dash.")] [Range(0.1f, 5f)]
-        public float dashForceMultiplier = 1f;
-
-        [Tooltip("Multiplicador específico para el delay de ataque (valores < 1 lo hacen más rápido).")]
-        [Range(0.1f, 5f)]
-        public float attackDelayMultiplier = 1f;
-
-        private List<GameObject> activeEnemies = new List<GameObject>();
-        private Transform playerTransform;
-
+        /// <summary>
+        /// Al arrancar, encuentra al jugador y prepara al director Neeply.
+        /// </summary>
         private void Start()
         {
-            playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
-            if (playerTransform == null)
+            _playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
+            if (_playerTransform == null)
             {
-                Debug.LogError("[HordeManager] No se encontró al jugador. El sistema de hordas no puede funcionar.");
+                Debug.LogError("[HordeManager] ¡No se encontró al jugador! El sistema de hordas no puede funcionar.");
+                this.enabled = false;
                 return;
             }
 
+            InitializeDirector();
             StartNewRound(currentRound);
         }
 
         /// <summary>
-        /// Inicia una nueva ronda. Destruye los enemigos anteriores y genera los nuevos.
+        /// Prepara a Neeply. Le pide al MasterFactory la lista de todos los "costes en puntos"
+        /// de enemigos que existen, para que Neeply sepa qué puede pedir.
+        /// </summary>
+        private void InitializeDirector()
+        {
+            if (masterFactory == null)
+            {
+                Debug.LogError("[HordeManager] ¡No se ha asignado un MasterFactory en el Inspector!");
+                return;
+            }
+            
+            var availableCosts = masterFactory.GetAvailablePointCosts();
+            _neeply = new NeeplyDirector(availableCosts);
+        }
+
+        /// <summary>
+        /// Inicia una nueva ronda. Limpia los enemigos anteriores y genera una nueva horda.
         /// </summary>
         /// <param name="roundNumber">El número de la ronda a iniciar.</param>
-        private void StartNewRound(int roundNumber)
+        public void StartNewRound(int roundNumber)
         {
             currentRound = roundNumber;
             KillAllEnemies();
+            if (roundText != null) roundText.text = $"Ronda: {currentRound}";
 
-            // --- ACTUALIZAR TEXTO DE UI ---
-            if (roundText != null)
-            {
-                roundText.text = $"{currentRound}";
-            }
-            // -----------------------------
+            Dictionary<int, int> hordeRequest = _neeply.CookHorde(currentRound);
+            Debug.Log($"[HordeManager] Neeply ha solicitado una horda para la ronda {currentRound}.");
 
-            var enemyCount = Mathf.Min(initialEnemyCount + (currentRound - 1) * enemiesPerRoundIncrease, maxEnemies);
-
-            Debug.Log($"Iniciando Ronda {currentRound} con {enemyCount} enemigos.");
-
-            for (var i = 0; i < enemyCount; i++)
-            {
-                SpawnEnemyForRound(currentRound);
-            }
+            SpawnEnemiesFromRequest(hordeRequest);
         }
 
         /// <summary>
-        /// Determina qué tipo de enemigo crear basado en la ronda actual y luego lo instancia.
+        /// Recorre el plan de Neeply y pide al MasterFactory que cree los enemigos.
         /// </summary>
-        private void SpawnEnemyForRound(int round)
+        private void SpawnEnemiesFromRequest(Dictionary<int, int> request)
         {
-            var typeToSpawn = DetermineEnemyType(round);
-            var baseStats = GetBaseStatsForType(typeToSpawn);
-
-            // Instancia los slime a través de la fábrica
-            GameObject newSlimeInstance = slimeFactory.CreateEnemy(typeToSpawn);
-            if (newSlimeInstance == null) return;
-
-            // Configuracion del slime con las estadísticas calculadas
-            ConfigureSpawnedSlime(newSlimeInstance, baseStats);
-
-            // Posicionamiento del enemigo y lo activamos
-            PositionEnemy(newSlimeInstance);
-            activeEnemies.Add(newSlimeInstance);
-        }
-
-        /// <summary>
-        /// Algoritmo para decidir qué tipo de slime generar según la ronda.
-        /// </summary>
-        private EnemyType DetermineEnemyType(int round)
-        {
-            if (round < startRoundForMedium)
+            foreach(var order in request)
             {
-                return EnemyType.SlimeLittle;
-            }
-
-            var randomValue = Random.value;
-
-            if (round >= startRoundForBig)
-            {
-                if (randomValue < 0.25f) return EnemyType.SlimeBig;
-                if (randomValue < 0.50f) return EnemyType.SlimeMedium;
-                return EnemyType.SlimeLittle;
-            }
-
-            var mediumChance = Mathf.Lerp(0.10f, 0.25f,
-                (float)(round - startRoundForMedium) / (startRoundForBig - startRoundForMedium));
-            if (randomValue < mediumChance)
-            {
-                return EnemyType.SlimeMedium;
-            }
-
-            return EnemyType.SlimeLittle;
-        }
-
-        /// <summary>
-        /// Configura un slime recién creado con sus estadísticas finales, aplicando los multiplicadores.
-        /// </summary>
-        private void ConfigureSpawnedSlime(GameObject slimeInstance, SlimeStats baseStats)
-        {
-            var slimeController = slimeInstance.GetComponent<SlimeEnemy>();
-            if (slimeController == null)
-            {
-                Debug.LogError($"[HordeManager] El prefab {slimeInstance.name} no tiene el componente SlimeEnemy.");
-                return;
-            }
-
-            // --- Este es tu "método base" de cálculo ---
-            // 1. Obtener valores aleatorios de la base
-            float randomWalkSpeed = Random.Range(baseStats.minWalkSpeed, baseStats.maxWalkSpeed);
-            float randomDashForce = Random.Range(baseStats.minDashForce, baseStats.maxDashForce);
-            float randomAttackDelay = Random.Range(baseStats.minAttackDelay, baseStats.maxAttackDelay);
-
-            // 2. Aplicar multiplicadores
-            float finalMoveSpeed = randomWalkSpeed * globalDifficultyMultiplier;
-            float finalDashSpeed = randomDashForce * globalDifficultyMultiplier;
-
-            float finalAttackDelay = randomAttackDelay / (attackDelayMultiplier * globalDifficultyMultiplier);
-
-            // 3. Calcular daño
-            var finalDamage = Mathf.RoundToInt(finalDashSpeed * 0.5f);
-
-            // Vida se hardcodea a 10 para todos los slimes (no hay sistema de vida aun)
-            slimeController.health = 10;
-            slimeController.damage = finalDamage;
-            slimeController.moveSpeed = finalMoveSpeed;
-            slimeController.dashSpeed = finalDashSpeed;
-            slimeController.attackDelay = finalAttackDelay;
-
-            Debug.Log(
-                $"Slime configurado: {slimeInstance.name} con Vel: {finalMoveSpeed:F2}, Delay: {finalAttackDelay:F2}");
-        }
-
-
-        /// <summary>
-        /// Devuelve el ScriptableObject de estadísticas correspondiente a un tipo de enemigo.
-        /// </summary>
-        private SlimeStats GetBaseStatsForType(EnemyType type)
-        {
-            switch (type)
-            {
-                case EnemyType.SlimeLittle: return littleSlimeBaseStats;
-                case EnemyType.SlimeMedium: return mediumSlimeBaseStats;
-                case EnemyType.SlimeBig: return bigSlimeBaseStats;
-                default: return littleSlimeBaseStats;
+                int pointCost = order.Key;
+                int count = order.Value;
+                
+                List<GameObject> createdEnemies = masterFactory.RequestEnemies(pointCost, count);
+                
+                foreach(var enemy in createdEnemies)
+                {
+                    PositionEnemy(enemy);
+                    _activeEnemies.Add(enemy);
+                }
             }
         }
-
+        
         /// <summary>
-        /// Coloca al enemigo en una posición aleatoria alrededor del jugador.
+        /// Coloca a un enemigo recién creado en una posición aleatoria alrededor del jugador.
         /// </summary>
         private void PositionEnemy(GameObject enemyInstance)
         {
-            if (playerTransform == null) return;
+            if (_playerTransform == null) return;
+
             var randomDirection = Random.insideUnitCircle.normalized;
-            var spawnDistance = 15f; // Distancia a la que aparecen los enemigos
-            enemyInstance.transform.position = (Vector2)playerTransform.position + (randomDirection * spawnDistance);
+            var spawnDistance = 20f; // Los hacemos aparecer un poco lejos.
+            enemyInstance.transform.position = (Vector2)_playerTransform.position + (randomDirection * spawnDistance);
         }
 
         /// <summary>
@@ -213,32 +112,15 @@ namespace Project.Game.Systems
         /// </summary>
         private void KillAllEnemies()
         {
-            foreach (var enemy in new List<GameObject>(activeEnemies))
+            foreach (var enemy in _activeEnemies)
             {
-                if (enemy != null)
-                {
-                    Destroy(enemy);
-                }
+                if (enemy != null) Destroy(enemy);
             }
-
-            activeEnemies.Clear();
+            _activeEnemies.Clear();
         }
 
-        /// <summary>
-        /// Inicia la siguiente ronda. Este método está diseñado para ser llamado por un botón de UI.
-        /// </summary>
-        public void GoToNextRoundButton()
-        {
-            StartNewRound(currentRound + 1);
-        }
-
-        /// <summary>
-        /// Inicia la ronda anterior. Este método está diseñado para ser llamado por un botón de UI.
-        /// </summary>
-        public void GoToPreviousRoundButton()
-        {
-            int previousRound = Mathf.Max(1, currentRound - 1);
-            StartNewRound(previousRound);
-        }
+        // --- Métodos para botones de UI ---
+        public void GoToNextRoundButton() => StartNewRound(currentRound + 1);
+        public void GoToPreviousRoundButton() => StartNewRound(Mathf.Max(1, currentRound - 1));
     }
 }

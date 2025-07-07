@@ -1,15 +1,15 @@
 ﻿using UnityEngine;
 
-namespace Project.Game.Systems
+namespace Project.Core.Data
 {
     [CreateAssetMenu(fileName = "NewSlimeStats", menuName = "Enemies/Slime Stats")]
-    public class SlimeStats : ScriptableObject
+    public class SlimeStats : EnemyStats 
     {
-        [Header("Estadísticas de Movimiento")]
+        [Header("Estadísticas de Movimiento (Rangos)")]
         public float minWalkSpeed = 1f;
         public float maxWalkSpeed = 2f;
 
-        [Header("Estadísticas de Combate")]
+        [Header("Estadísticas de Combate (Rangos)")]
         public float minAttackDelay = 2f;
         public float maxAttackDelay = 3f;
         public float minDashForce = 2f;

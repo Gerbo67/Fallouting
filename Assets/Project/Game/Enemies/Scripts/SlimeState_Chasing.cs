@@ -19,18 +19,16 @@ namespace Project.Game.Enemies.Scripts
 
         public void Enter()
         {
-            owner.EnemyAI.Resume(); // Reanudar el seguimiento del NavMesh
+            owner.EnemyAI.Resume();
             owner.Anim?.SetBool("IsChasing", true);
         }
 
         public void Execute()
         {
             owner.FacePlayer();
-        
-            // Si el jugador no existe o está fuera de rango, sigue persiguiendo.
             if (owner.PlayerTarget == null) return;
 
-            // Comprueba si está dentro del rango para atacar.
+            owner.EnemyAI.MoveTo(owner.PlayerTarget.position);
             if (Vector2.Distance(owner.transform.position, owner.PlayerTarget.position) <= attackRange)
             {
                 stateMachine.ChangeState(owner.AnticipationState);
@@ -39,7 +37,7 @@ namespace Project.Game.Enemies.Scripts
 
         public void Exit()
         {
-            owner.EnemyAI.Stop(); // Detener al agente antes de cambiar de estado.
+            owner.EnemyAI.Stop();
         }
     }
 }

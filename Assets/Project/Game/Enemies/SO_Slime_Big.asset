@@ -12,6 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf1d5b3e94a340208182fad5c1a94edb, type: 3}
   m_Name: SO_Slime_Big
   m_EditorClassIdentifier: 
+  baseHealth: 10
+  averageDamage: 8
+  averageMoveSpeed: 2
+  averageAttackDelay: 10
   minWalkSpeed: 0.5
   maxWalkSpeed: 1.5
   minAttackDelay: 4

@@ -48,7 +48,7 @@ public class SlimeState_Dash : IState
         var distanceToTarget = Vector2.Distance(startPosition, targetPosition);
 
         // --- Detección de Colisión con Raycast ---
-        // Lanzamos un sensor circular desde el inicio para ver si hay un obstáculo en el camino.
+        // Lanzar un sensor circular desde el inicio para ver si hay un obstáculo en el camino.
         RaycastHit2D hit = Physics2D.CircleCast(startPosition, owner.attackColliderRadius, direction, distanceToTarget,
             owner.collisionLayers);
 
@@ -56,10 +56,9 @@ public class SlimeState_Dash : IState
         {
             targetPosition = hit.point - direction * (owner.attackColliderRadius * 0.9f);
         }
-        // -----------------------------------------
 
         float distance = Vector2.Distance(startPosition, targetPosition);
-        float duration = distance / owner.dashSpeed;
+        float duration = distance / owner.dashSpeed; 
         float elapsedTime = 0;
 
         while (elapsedTime < duration)
@@ -75,7 +74,6 @@ public class SlimeState_Dash : IState
             yield return new WaitForFixedUpdate();
         }
 
-        // Limpieza
         owner.EnemyAI.GetComponent<Rigidbody2D>().MovePosition(targetPosition);
         owner.spriteTransform.localScale = owner.initialScale;
 
