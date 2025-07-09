@@ -13,6 +13,7 @@ namespace Project.Game.Player.Scripts
     {
         public MoveInputEvent onMove;
         public UnityEvent onMoveCanceled;
+        public UnityEvent onAttack;
 
         /// <summary>
         /// Esta función es llamada por el componente "Player Input" de Unity en el GameObject.
@@ -27,6 +28,17 @@ namespace Project.Game.Player.Scripts
             {
                 onMove.Invoke(Vector2.zero);
                 onMoveCanceled.Invoke();
+            }
+        }
+        
+        /// <summary>
+        /// Esta función es llamada por el componente "Player Input" al presionar el botón de ataque.
+        /// </summary>
+        public void Attack(InputAction.CallbackContext context)
+        {
+            if (context.performed)
+            {
+                onAttack.Invoke();
             }
         }
     }

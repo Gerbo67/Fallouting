@@ -11,6 +11,7 @@ namespace Project.Game.Player.Scripts
         void Awake()
         {
             animator = GetComponent<Animator>();
+            lastMoveInput = new Vector2(0, -1f);
         }
 
         /// <summary>
@@ -30,12 +31,27 @@ namespace Project.Game.Player.Scripts
         }
 
         /// <summary>
-        /// Configura la dirección de reposo en el Animator para que el personaje mire en la última dirección de movimiento.
+        /// Configura la dirección en el Animator. Prioriza la dirección horizontal para los ataques diagonales.
         /// </summary>
         public void SetIdleDirection()
         {
-            animator.SetFloat("LastInputX", lastMoveInput.x);
-            animator.SetFloat("LastInputY", lastMoveInput.y);
+            Vector2 attackDirection = lastMoveInput;
+
+            if (Mathf.Abs(attackDirection.x) > 0.1f)
+            {
+                attackDirection.y = 0;
+            }
+
+            animator.SetFloat("LastInputX", attackDirection.x);
+            animator.SetFloat("LastInputY", attackDirection.y);
+        }
+
+        /// <summary>
+        /// Activa el trigger de ataque en el Animator.
+        /// </summary>
+        public void PlayAttackAnimation()
+        {
+            animator.SetTrigger("Attack");
         }
 
         /// <summary>

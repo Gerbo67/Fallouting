@@ -16,6 +16,8 @@ namespace Project.Game.Player.Scripts
         private PlayerAnimator Animator { get; set; }
         private DamageDealer DamageDealer { get; set; }
 
+        private bool isAttacking = false;
+
         // Awake is called before Start
         protected override void Awake()
         {
@@ -36,6 +38,17 @@ namespace Project.Game.Player.Scripts
 
             InputHandler.onMove.AddListener(OnMoveInput);
             InputHandler.onMoveCanceled.AddListener(OnMoveCanceled);
+            InputHandler.onAttack.AddListener(OnAttackInput);
+        }
+
+        private void OnAttackInput()
+        {
+            if (isAttacking) return;
+
+            isAttacking = true;
+
+            Animator.SetIdleDirection();
+            Animator.PlayAttackAnimation(); 
         }
 
         public void PerformAttack()
@@ -55,11 +68,20 @@ namespace Project.Game.Player.Scripts
             Animator.SetIdleDirection();
         }
 
+        /// <summary>
+        /// Esta función será llamada por la animación cuando termine.
+        /// </summary>
+        public void OnAttackFinished()
+        {
+            isAttacking = false;
+        }
+
         public override void Die()
         {
             base.Die();
             Debug.LogWarning("The player has died. Disabling components.");
-            
+
+            isAttacking = true;
             InputHandler.enabled = false;
             Movement.enabled = false;
             enabled = false;
