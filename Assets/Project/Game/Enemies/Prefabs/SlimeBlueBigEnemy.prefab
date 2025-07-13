@@ -9,7 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3049585416024955493}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -43,7 +43,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1727071614278209499}
   - component: {fileID: 2205457007954958832}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: AttackCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -125,7 +125,8 @@ GameObject:
   - component: {fileID: 8854911234024212106}
   - component: {fileID: 5269158433973554512}
   - component: {fileID: 6847206376155312599}
-  m_Layer: 0
+  - component: {fileID: 1800749551321678793}
+  m_Layer: 6
   m_Name: SlimeBlueBigEnemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -196,19 +197,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spriteTransform: {fileID: 6622970451609837162}
-  idleColliderObject: {fileID: 7910487975470770398}
   attackColliderObject: {fileID: 4699826822245236538}
-  minIdleTime: 1
-  maxIdleTime: 3
-  attackRange: 5
-  dashAnticipationTime: 1
-  dashSpeed: 10
-  dashScaleMultiplier: 1.25
+  idleColliderObject: {fileID: 7910487975470770398}
+  initialScale: {x: 0, y: 0, z: 0}
+  attackColliderRadius: 0.5
   collisionLayers:
     serializedVersion: 2
     m_Bits: 0
-  attackColliderRadius: 0.5
-  initialScale: {x: 0, y: 0, z: 0}
+  dashScaleMultiplier: 1.25
 --- !u!50 &5269158433973554512
 Rigidbody2D:
   serializedVersion: 5
@@ -258,6 +254,42 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!58 &1800749551321678793
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5818849333225878226}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 6200000, guid: bf8b1010c03ca304eb3bd5dd30045ee5, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -0.04, y: 0.04}
+  m_Radius: 0.58
 --- !u!1 &7910487975470770398
 GameObject:
   m_ObjectHideFlags: 0
@@ -268,7 +300,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5290462173340628523}
   - component: {fileID: 6600910622022065993}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: IdleCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -346,7 +378,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6622970451609837162}
   - component: {fileID: 4811991067523828201}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}

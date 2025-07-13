@@ -1,4 +1,5 @@
 ﻿using Project.Game.Enemies.Scripts;
+using Project.Game.Player.Scripts;
 using Project.Game.Systems;
 using UnityEngine;
 
@@ -42,6 +43,16 @@ public sealed class SlimeEnemy : EnemyBase
     public SlimeState_Anticipation AnticipationState { get; private set; }
     public SlimeState_Dash DashingState { get; private set; }
 
+    protected override void Awake()
+    {
+        base.Awake();
+        Anim = GetComponent<Animator>();
+        if(spriteTransform) initialScale = spriteTransform.localScale;
+        
+        AdaptStats();
+        SetupStateMachine();
+    }
+
     public void Initialize(int health, float moveSpeed, int damage, float attackDelay)
     {
         this.health = health;
@@ -50,27 +61,17 @@ public sealed class SlimeEnemy : EnemyBase
         this.attackDelay = attackDelay;
 
         AdaptStats();
-        SetupStateMachine();
-        
+
         EnemyAI.SetSpeed(this.moveSpeed);
-        
-        EnemyAI.GetComponent<UnityEngine.AI.NavMeshAgent>().stoppingDistance = this.attackRange * 0.9f;
-    }
-    
-    protected override void Awake()
-    {
-        base.Awake();
-        Anim = GetComponent<Animator>();
-        if(spriteTransform) initialScale = spriteTransform.localScale;
-        
-        AdaptStats();
+
+        EnemyAI.GetComponent<UnityEngine.AI.NavMeshAgent>().stoppingDistance = attackRange * 0.9f;
     }
 
     void Start()
     {
-       if (StateMachine != null) StateMachine.Initialize(IdleState);
+        if (StateMachine != null) StateMachine.Initialize(ChasingState); 
        
-       ActivateIdleCollider();
+        ActivateIdleCollider();
     }
 
     void Update()
@@ -105,6 +106,37 @@ public sealed class SlimeEnemy : EnemyBase
     {
         if (idleColliderObject) idleColliderObject.SetActive(true);
         if (attackColliderObject) attackColliderObject.SetActive(false);
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        // Solo hace daño si está en el estado de Dash y choca con el jugador.
+        if (StateMachine.CurrentState == DashingState && other.CompareTag("Player"))
+        {
+            if(other.TryGetComponent<Player>(out var player))
+            {
+                Debug.Log($"Slime golpeó al jugador en modo Dash. Daño: {damage}");
+                player.TakeDamage(damage);
+            }
+        }
+    }
+
+    protected override void HandleDamage()
+    {
+        Anim?.SetTrigger("Hurt");
+    }
+    
+    protected override void Die()
+    {
+        // Notificar muerte al Neeply
+        NotifyDirectorOfDeath();
+        
+        enabled = false;
+        GetComponent<Collider2D>().enabled = false;
+        EnemyAI.Stop();
+        Anim?.SetTrigger("isDead");
+        
+        Destroy(gameObject, 2f);
     }
 
 

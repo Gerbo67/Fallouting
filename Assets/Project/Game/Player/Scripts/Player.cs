@@ -1,42 +1,26 @@
 ﻿using Project.Core.Entities;
 using UnityEngine;
-using System.Collections.Generic;
+using Project.Game.Enemies.Scripts;
+using System.Collections;
+using UnityEngine.SceneManagement;
 
 namespace Project.Game.Player.Scripts
 {
-    /// <summary>
-    /// Controls the player character, including movement, attack, and interaction with input.
-    /// </summary>
-    /// [RequireComponent(typeof(PlayerInputHandler))]
-    /// [RequireComponent(typeof(PlayerMovement))]
-    /// [RequireComponent(typeof(PlayerAnimator))]
-    /// [RequireComponent(typeof(DamageDealer))]
     public class Player : EntityAbstract
     {
         private PlayerInputHandler InputHandler { get; set; }
         private PlayerMovement Movement { get; set; }
         private PlayerAnimator Animator { get; set; }
 
-        // Health property implementation
-        private int _health = 100;
+        public override int health { get; set; } = 100;
 
-        public override int health
-        {
-            get => _health;
-            set => _health = value;
-        }
-
-        private bool isAttacking = false;
-
+        private bool _isAttacking;
         public float attackRadius = 1.5f;
-
         public LayerMask attackableLayers;
 
-        // Awake is called before Start
         protected override void Awake()
         {
             base.Awake();
-
             InputHandler = GetComponent<PlayerInputHandler>();
             Movement = GetComponent<PlayerMovement>();
             Animator = GetComponent<PlayerAnimator>();
@@ -44,9 +28,8 @@ namespace Project.Game.Player.Scripts
 
         void Start()
         {
-            float initialMoveSpeed = 5f;
+            var initialMoveSpeed = 5f;
             Movement.Initialize(initialMoveSpeed);
-
             InputHandler.onMove.AddListener(OnMoveInput);
             InputHandler.onMoveCanceled.AddListener(OnMoveCanceled);
             InputHandler.onAttack.AddListener(OnAttackInput);
@@ -54,73 +37,70 @@ namespace Project.Game.Player.Scripts
 
         private void OnAttackInput()
         {
-            if (isAttacking) return;
-
-            isAttacking = true;
-
+            if (_isAttacking || isDead) return;
+            _isAttacking = true;
             Animator.SetIdleDirection();
             Animator.PlayAttackAnimation();
         }
 
-        /// <summary>
-        /// Esta función es llamada por la animación de ataque en un punto específico para aplicar el daño.
-        /// </summary>
         public void PerformAttack()
         {
-            int attackDamage = 1;
-            Debug.Log($"Player attacks for {attackDamage} damage in an area with radius {attackRadius}!");
+            const int attackDamage = 10;
 
-            Collider2D[] hitColliders = Physics2D.OverlapCircleAll(transform.position, attackRadius, attackableLayers);
-            List<EntityAbstract>
-                damagedEntities =
-                    new List<EntityAbstract>();
+            var hitColliders = Physics2D.OverlapCircleAll(transform.position, attackRadius, attackableLayers);
 
             foreach (Collider2D hitCollider in hitColliders)
             {
-                if (hitCollider != null && hitCollider.TryGetComponent<EntityAbstract>(out var entity))
+                if (hitCollider != null && hitCollider.TryGetComponent<EnemyBase>(out var enemy))
                 {
-                    if (entity != this && !damagedEntities.Contains(entity))
-                    {
-                        entity.TakeDamage(attackDamage);
-                        damagedEntities.Add(entity);
-                        Debug.Log($"Hit {entity.gameObject.name} for {attackDamage} damage.");
-                    }
+                    enemy.TakeDamage(attackDamage);
                 }
             }
         }
 
+        protected override void HandleDamage()
+        {
+        }
+
+        protected override void Die()
+        {
+            Debug.LogWarning("El jugador ha muerto. Iniciando secuencia de reinicio.");
+            Animator.PlayDeathAnimation();
+
+            _isAttacking = true;
+            if(InputHandler) InputHandler.enabled = false;
+            if(Movement) Movement.enabled = false;
+            
+            GetComponent<Collider2D>().enabled = false;
+
+            StartCoroutine(RestartLevelAfterDelay(3.0f)); 
+        }
+
+        private IEnumerator RestartLevelAfterDelay(float delay)
+        {
+            yield return new WaitForSeconds(delay);
+
+            SceneManager.LoadScene(SceneManager.GetActiveScene().name);
+        }
+
         private void OnMoveInput(Vector2 moveInput)
         {
+            if (isDead) return;
             Movement.SetMoveInput(moveInput);
             Animator.UpdateMoveAnimation(moveInput);
         }
 
         private void OnMoveCanceled()
         {
-            Animator.SetIdleDirection();
+             if (isDead) return;
+            Animator.UpdateMoveAnimation(Vector2.zero);
         }
 
-        /// <summary>
-        /// Esta función será llamada por la animación cuando termine.
-        /// </summary>
         public void OnAttackFinished()
         {
-            isAttacking = false;
+            _isAttacking = false;
         }
-
-        /*public override void Die()
-        {
-            base.Die();
-            Debug.LogWarning("The player has died. Disabling components.");
-            Animator.PlayDeathAnimation();
-
-            isAttacking = true;
-            InputHandler.enabled = false;
-            Movement.enabled = false;
-            // 'enabled = false;' es opcional ya que Die() deshabilita los colliders y finalmente destruye el objeto.
-        }*/
-
-        // Gizmo para visualizar el área de ataque en el editor
+        
         private void OnDrawGizmosSelected()
         {
             Gizmos.color = Color.yellow;

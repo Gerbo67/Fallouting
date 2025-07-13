@@ -1,13 +1,17 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using Project.Core.Data;
 using Project.Core.Interfaces;
 using Project.Game.Systems;
 using Project.Game.Systems.Director;
+using UnityEngine.AI;
 
 public class NeeplyDirector : MonoBehaviour
 {
+    public static NeeplyDirector Instance { get; private set; }
+
     [Header("Referencias a Módulos")] public HordeManager hordeManager;
     public GeneticAlgorithmDirector aiDirector;
 
@@ -23,6 +27,15 @@ public class NeeplyDirector : MonoBehaviour
 
     void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            Instance = this;
+        }
+
         RegisterFactories();
 
         _playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
@@ -36,6 +49,26 @@ public class NeeplyDirector : MonoBehaviour
     void Start()
     {
         JumpToRound(1);
+    }
+
+    public void OnEnemyDied(GameObject enemy)
+    {
+        if (_activeEnemies.Contains(enemy))
+        {
+            _activeEnemies.Remove(enemy);
+        }
+
+        if (_activeEnemies.Count == 0)
+        {
+            Debug.Log("<color=green>¡Ronda completada!</color> Iniciando la siguiente...");
+            StartCoroutine(StartNextRoundAfterDelay(2.0f));
+        }
+    }
+
+    private IEnumerator StartNextRoundAfterDelay(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        StartNextRound();
     }
 
     private void RegisterFactories()
@@ -85,34 +118,35 @@ public class NeeplyDirector : MonoBehaviour
         _activeEnemies.Clear();
     }
 
-
     public void StartNextRound()
     {
         _currentRoundNumber++;
         hordeManager?.UpdateRoundUI(_currentRoundNumber);
 
-        var isPresentationRound = (_currentRoundNumber - 1) % hordeManager!.roundsBetweenPresentations == 0;
+        var unlockedTypesCount = 1 + ((_currentRoundNumber - 1) / hordeManager.roundsBetweenPresentations);
+        unlockedTypesCount = Mathf.Min(unlockedTypesCount, enemyProgressionOrder.Count);
+
+        _unlockedEnemies.Clear();
+        for (int i = 0; i < unlockedTypesCount; i++)
+        {
+            _unlockedEnemies.Add(enemyProgressionOrder[i]);
+        }
+
+        var isPresentationRound = (_currentRoundNumber - 1) % hordeManager.roundsBetweenPresentations == 0;
         var enemyIndex = (_currentRoundNumber - 1) / hordeManager.roundsBetweenPresentations;
 
         if (isPresentationRound && enemyIndex < enemyProgressionOrder.Count)
         {
             var newEnemyData = enemyProgressionOrder[enemyIndex];
-            if (!_unlockedEnemies.Contains(newEnemyData))
-            {
-                _unlockedEnemies.Add(newEnemyData);
-            }
 
-            var plan = new List<EnemyData> { newEnemyData, newEnemyData };
+            var plan = new List<EnemyData> { newEnemyData };
+            Debug.Log($"<color=cyan>Ronda de Presentación {_currentRoundNumber}: Presentando a {newEnemyData.enemyName}.</color>");
+        
             InstantiateRound(plan);
         }
         else
         {
-            var requiredUnlockCount = Mathf.Min(enemyIndex + 1, enemyProgressionOrder.Count);
-            while (_unlockedEnemies.Count < requiredUnlockCount)
-            {
-                _unlockedEnemies.Add(enemyProgressionOrder[_unlockedEnemies.Count]);
-            }
-
+            Debug.Log($"<color=yellow>Ronda Procedural {_currentRoundNumber}: Usando {string.Join(", ", _unlockedEnemies.Select(e => e.enemyName))}.</color>");
             GenerateProceduralRound();
         }
     }
@@ -139,12 +173,28 @@ public class NeeplyDirector : MonoBehaviour
 
     private Vector3 GetRandomSpawnPosition()
     {
-        float minSpawnRadius = 15f, maxSpawnRadius = 25f;
+        float minSpawnRadius = 5f, maxSpawnRadius = 10f;
         if (_playerTransform == null) return Vector3.zero;
-        var randomDirection = Random.insideUnitCircle.normalized;
-        var randomDistance = Random.Range(minSpawnRadius, maxSpawnRadius);
-        return (Vector2)_playerTransform.position + (randomDirection * randomDistance);
+
+        for (int i = 0; i < 30; i++)
+        {
+            var randomDirection = Random.insideUnitCircle.normalized;
+            var randomDistance = Random.Range(minSpawnRadius, maxSpawnRadius);
+            Vector3 potentialPosition = _playerTransform.position +
+                                        new Vector3(randomDirection.x, randomDirection.y, 0) * randomDistance;
+
+            NavMeshHit hit;
+            if (NavMesh.SamplePosition(potentialPosition, out hit, 5.0f, NavMesh.AllAreas))
+            {
+                return hit.position;
+            }
+        }
+
+        Debug.LogWarning(
+            "[NeeplyDirector] No se pudo encontrar una posición de spawn válida en el NavMesh. El enemigo aparecerá en la posición del jugador.");
+        return _playerTransform.position;
     }
+
 
     /// <summary>
     /// Devuelve el número de la ronda actual.

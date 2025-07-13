@@ -30,7 +30,15 @@ namespace Project.Game.Enemies.Scripts
             _idleTimer -= Time.deltaTime;
             if (_idleTimer <= 0)
             {
-                _stateMachine.ChangeState(_owner.ChasingState);
+                if (_owner.PlayerTarget != null &&
+                    Vector2.Distance(_owner.transform.position, _owner.PlayerTarget.position) <= _owner.attackRange)
+                {
+                    _stateMachine.ChangeState(_owner.AnticipationState);
+                }
+                else
+                {
+                    _stateMachine.ChangeState(_owner.ChasingState);
+                }
             }
         }
 

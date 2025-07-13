@@ -14,7 +14,8 @@ GameObject:
   - component: {fileID: 5038550249106993575}
   - component: {fileID: 6737871303728661973}
   - component: {fileID: 2373610016415476555}
-  m_Layer: 0
+  - component: {fileID: 9204176962962021637}
+  m_Layer: 6
   m_Name: SlimeBlueLittleEnemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -85,19 +86,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spriteTransform: {fileID: 5503655670330350040}
-  idleColliderObject: {fileID: 6643674280172772839}
   attackColliderObject: {fileID: 6187008202942950934}
-  minIdleTime: 1
-  maxIdleTime: 3
-  attackRange: 5
-  dashAnticipationTime: 1
-  dashSpeed: 10
-  dashScaleMultiplier: 1.25
+  idleColliderObject: {fileID: 6643674280172772839}
+  initialScale: {x: 0, y: 0, z: 0}
+  attackColliderRadius: 0.5
   collisionLayers:
     serializedVersion: 2
     m_Bits: 0
-  attackColliderRadius: 0.5
-  initialScale: {x: 0, y: 0, z: 0}
+  dashScaleMultiplier: 1.25
 --- !u!50 &6737871303728661973
 Rigidbody2D:
   serializedVersion: 5
@@ -147,6 +143,42 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!58 &9204176962962021637
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2307718602379194387}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 6200000, guid: bf8b1010c03ca304eb3bd5dd30045ee5, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -0.03, y: 0.08}
+  m_Radius: 0.22
 --- !u!1 &3982059798345224281
 GameObject:
   m_ObjectHideFlags: 0
@@ -157,7 +189,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5503655670330350040}
   - component: {fileID: 253392643114916533}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -244,7 +276,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1102610599309986600}
   - component: {fileID: 4127132290603170515}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: AttackCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -322,7 +354,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2064265465606152188}
   - component: {fileID: 4858358022130122894}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: IdleCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -399,7 +431,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2466828530012308474}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}

@@ -25,10 +25,13 @@ namespace Project.Game.Enemies.Scripts
 
         public void Execute()
         {
+           
             if (_owner.PlayerTarget == null) return;
 
             _owner.EnemyAI.MoveTo(_owner.PlayerTarget.position);
-            if (Vector2.Distance(_owner.transform.position, _owner.PlayerTarget.position) <= _attackRange)
+            
+            var agent = _owner.EnemyAI.GetComponent<UnityEngine.AI.NavMeshAgent>();
+            if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
             {
                 _stateMachine.ChangeState(_owner.AnticipationState);
             }

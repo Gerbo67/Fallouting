@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8025558907584312984}
   - component: {fileID: 2024755974731512662}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: AttackCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -88,7 +88,7 @@ GameObject:
   m_Component:
   - component: {fileID: 8704792413981201185}
   - component: {fileID: 5668718285492512231}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: IdleCollider
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -166,7 +166,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6409138240603867938}
   - component: {fileID: 4771932141735805692}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Sprite
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -257,7 +257,8 @@ GameObject:
   - component: {fileID: 1508321295275422685}
   - component: {fileID: 7536523019787261739}
   - component: {fileID: 8820239519968321302}
-  m_Layer: 0
+  - component: {fileID: 4704790282670447635}
+  m_Layer: 6
   m_Name: SlimePinkBigEnemy
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -328,19 +329,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   spriteTransform: {fileID: 6409138240603867938}
-  idleColliderObject: {fileID: 4088427845457790145}
   attackColliderObject: {fileID: 1100634368658252722}
-  minIdleTime: 1
-  maxIdleTime: 3
-  attackRange: 5
-  dashAnticipationTime: 1
-  dashSpeed: 10
-  dashScaleMultiplier: 1.25
+  idleColliderObject: {fileID: 4088427845457790145}
+  initialScale: {x: 0, y: 0, z: 0}
+  attackColliderRadius: 0.5
   collisionLayers:
     serializedVersion: 2
     m_Bits: 0
-  attackColliderRadius: 0.5
-  initialScale: {x: 0, y: 0, z: 0}
+  dashScaleMultiplier: 1.25
 --- !u!50 &7536523019787261739
 Rigidbody2D:
   serializedVersion: 5
@@ -390,6 +386,42 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!58 &4704790282670447635
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6131675030087993633}
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Density: 1
+  m_Material: {fileID: 6200000, guid: bf8b1010c03ca304eb3bd5dd30045ee5, type: 2}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 0
+  m_UsedByEffector: 0
+  m_CompositeOperation: 0
+  m_CompositeOrder: 0
+  m_Offset: {x: -0.04, y: 0.04}
+  m_Radius: 0.58
 --- !u!1 &6801320857923697788
 GameObject:
   m_ObjectHideFlags: 0
@@ -399,7 +431,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 267457631528102052}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Collider
   m_TagString: Untagged
   m_Icon: {fileID: 0}

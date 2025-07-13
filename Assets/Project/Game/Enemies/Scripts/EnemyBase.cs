@@ -1,4 +1,5 @@
-﻿using Project.Core.Entities;
+﻿// EnemyBase.cs (MODIFICADO)
+using Project.Core.Entities;
 using Project.Game.Systems;
 using UnityEngine;
 
@@ -18,6 +19,9 @@ namespace Project.Game.Enemies.Scripts
         public Transform PlayerTarget => playerTransform;
         public EnemyAI EnemyAI => ai;
 
+        private float _timeOfLastDamage;
+        private const float DamageCooldown = 0.4f; 
+        
         protected override void Awake()
         {
             base.Awake();
@@ -27,6 +31,25 @@ namespace Project.Game.Enemies.Scripts
             if (playerObject != null)
             {
                 playerTransform = playerObject.transform;
+            }
+        }
+
+        public override void TakeDamage(int amount)
+        {
+            if (Time.time < _timeOfLastDamage + DamageCooldown)
+            {
+                return;
+            }
+
+            _timeOfLastDamage = Time.time;
+            base.TakeDamage(amount);
+        }
+        
+        protected void NotifyDirectorOfDeath()
+        {
+            if (NeeplyDirector.Instance != null)
+            {
+                NeeplyDirector.Instance.OnEnemyDied(gameObject);
             }
         }
     }
