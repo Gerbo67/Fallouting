@@ -10,18 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d7bbc1bf4fc64534beb5d5aa0e5eff3d, type: 3}
-  m_Name: EnemyData_New
+  m_Name: SlimeMediumData
   m_EditorClassIdentifier: 
-  type: 0
-  pointCost: 0
-  prefabs: []
-  minHealth: 10
-  maxHealth: 20
-  minMoveSpeed: 2
-  maxMoveSpeed: 3
+  enemyName: SlimeMedium
+  type: 1
+  prefabs:
+  - {fileID: 4535762936509718524, guid: 59cf4febb60f8d7488124c0b3d8b2b88, type: 3}
+  minHealth: 5
+  maxHealth: 7
+  minMoveSpeed: 5
+  maxMoveSpeed: 6
   minDamage: 3
   maxDamage: 5
-  minAttackDelay: 1
-  maxAttackDelay: 2
-  minDashForce: 5
-  maxDashForce: 8
+  minAttackDelay: 3
+  maxAttackDelay: 4
+  baseDifficultyScore: 13.535714

@@ -1,115 +1,135 @@
-﻿using Project.Core.Entities;
+﻿using Project.Game.Enemies.Scripts;
 using Project.Game.Systems;
 using UnityEngine;
 
-namespace Project.Game.Enemies.Scripts
+public sealed class SlimeEnemy : EnemyBase
 {
-    public sealed class SlimeEnemy : EnemyBase
+    // --- Stats Base (Inyectadas por la fábrica) ---
+    private int _health;
+    private float _moveSpeed;
+    private int _damage;
+    private float _attackDelay;
+
+    // --- CORRECCIÓN: Implementación con "override" ---
+    public override int health { get => _health; set => _health = value; }
+    public override float moveSpeed { get => _moveSpeed; set => _moveSpeed = value; }
+    public override int damage { get => _damage; set => _damage = value; }
+    public override float attackDelay { get => _attackDelay; set => _attackDelay = value; }
+
+    // --- Componentes y Referencias ---
+    [Header("Referencias de Componentes")]
+    public Transform spriteTransform;
+    public GameObject attackColliderObject;
+    public GameObject idleColliderObject;
+    public Animator Anim { get; private set; }
+    public Vector3 initialScale;
+
+    // --- Parámetros de Comportamiento (Calculados en AdaptStats) ---
+    public float dashSpeed { get; private set; }
+    public float attackRange { get; private set; }
+    public float dashAnticipationTime { get; private set; }
+    
+    // --- RESTAURADO: Parámetros para el Dash con Raycast ---
+    [Header("Configuración del Dash")]
+    public float attackColliderRadius = 0.5f;
+    public LayerMask collisionLayers;
+    public float dashScaleMultiplier = 1.5f;
+
+    // --- Máquina de Estados ---
+    private StateMachine StateMachine { get; set; }
+    public SlimeState_Idle IdleState { get; private set; }
+    public SlimeState_Chasing ChasingState { get; private set; }
+    public SlimeState_Anticipation AnticipationState { get; private set; }
+    public SlimeState_Dash DashingState { get; private set; }
+
+    public void Initialize(int health, float moveSpeed, int damage, float attackDelay)
     {
-        [Header("Referencias de Componentes")]
-        public Transform spriteTransform;
-        public GameObject idleColliderObject;
-        public GameObject attackColliderObject;
-        public LayerMask collisionLayers;
-        public float attackColliderRadius = 0.5f;
+        this.health = health;
+        this.moveSpeed = moveSpeed;
+        this.damage = damage;
+        this.attackDelay = attackDelay;
 
-        [Header("Parámetros de Comportamiento")]
-        public float dashScaleMultiplier = 1.25f;
+        AdaptStats();
+        SetupStateMachine();
         
-        public override int health { get; set; }
-        public override float moveSpeed { get; set; }
-        public override int damage { get; set; }
-        public override float attackDelay { get; set; }
-
-        public float dashSpeed { get; set; }
-        public float attackRange { get; private set; }
-        public float dashAnticipationTime { get; private set; }
-
-        private StateMachine StateMachine { get; set; }
-        public SlimeState_Idle IdleState { get; private set; }
-        public SlimeState_Chasing ChasingState { get; private set; }
-        public SlimeState_Anticipation AnticipationState { get; private set; }
-        public SlimeState_Dash DashingState { get; private set; }
-        public Animator Anim { get; private set; }
-        public Vector3 initialScale;
-
-        protected override void Awake()
-        {
-            base.Awake();
-            
-            AdaptStats();
-
-            StateMachine = new StateMachine();
-            IdleState = new SlimeState_Idle(this, StateMachine);
-            ChasingState = new SlimeState_Chasing(this, StateMachine, this.attackRange);
-            AnticipationState = new SlimeState_Anticipation(this, StateMachine, this.dashAnticipationTime);
-            DashingState = new SlimeState_Dash(this, StateMachine);
-            
-            Anim = GetComponent<Animator>();
-            initialScale = spriteTransform.localScale;
-        }
-
-        void Start()
-        {
-           // base.Start();
-            EnemyAI.SetSpeed(this.moveSpeed);
-            StateMachine.Initialize(IdleState);
-            ActivateIdleCollider();
-        }
-
-        void Update()
-        {
-            StateMachine.Tick();
-        }
-
-        private void AdaptStats()
-        {
-            this.dashSpeed = this.damage * 1.5f;
-            
-            this.attackRange = this.dashSpeed * 0.4f;
-
-            this.dashAnticipationTime = this.attackDelay;
-            
-            damageDealer.damage = Mathf.RoundToInt(this.dashSpeed * 0.5f);
-            
-            //base.health = this.health;
-        }
-
-        public void ActivateAttackCollider()
-        {
-            if (idleColliderObject) idleColliderObject.SetActive(false);
-            if (attackColliderObject) attackColliderObject.SetActive(true);
-        }
-
-        public void ActivateIdleCollider()
-        {
-            if (idleColliderObject) idleColliderObject.SetActive(true);
-            if (attackColliderObject) attackColliderObject.SetActive(false);
-        }
-
-        public void FacePlayer()
-        {
-            if (PlayerTarget == null) return;
-            if (PlayerTarget.position.x > transform.position.x)
-                transform.localScale = new Vector3(1, 1, 1);
-            else
-                transform.localScale = new Vector3(-1, 1, 1);
-        }
+        EnemyAI.SetSpeed(this.moveSpeed);
         
-        public override void Die()
-        {
-            base.Die();
-        }
+        EnemyAI.GetComponent<UnityEngine.AI.NavMeshAgent>().stoppingDistance = this.attackRange * 0.9f;
+    }
+    
+    protected override void Awake()
+    {
+        base.Awake();
+        Anim = GetComponent<Animator>();
+        if(spriteTransform) initialScale = spriteTransform.localScale;
+        
+        AdaptStats();
+    }
 
-        private void OnTriggerEnter2D(Collider2D other)
+    void Start()
+    {
+       if (StateMachine != null) StateMachine.Initialize(IdleState);
+       
+       ActivateIdleCollider();
+    }
+
+    void Update()
+    {
+        if (isDead) return;
+        StateMachine?.Tick();
+    }
+
+    private void AdaptStats()
+    {
+        dashSpeed = damage * 1.5f;
+        attackRange = damage;
+        dashAnticipationTime = attackDelay;
+    }
+
+    private void SetupStateMachine()
+    {
+        StateMachine = new StateMachine();
+        IdleState = new SlimeState_Idle(this, StateMachine);
+        ChasingState = new SlimeState_Chasing(this, StateMachine, attackRange);
+        AnticipationState = new SlimeState_Anticipation(this, StateMachine, dashAnticipationTime);
+        DashingState = new SlimeState_Dash(this, StateMachine);
+    }
+    
+    public void ActivateAttackCollider()
+    {
+        if (idleColliderObject) idleColliderObject.SetActive(false);
+        if (attackColliderObject) attackColliderObject.SetActive(true);
+    }
+
+    public void ActivateIdleCollider()
+    {
+        if (idleColliderObject) idleColliderObject.SetActive(true);
+        if (attackColliderObject) attackColliderObject.SetActive(false);
+    }
+
+
+    /// <summary>
+    /// Dibuja Gizmos en el Editor de Unity para depuración visual.
+    /// Este método se llama automáticamente cuando el objeto está seleccionado.
+    /// </summary>
+    private void OnDrawGizmosSelected()
+    {
+        Color gizmoColor = Color.red;
+
+        if (Application.isPlaying && StateMachine != null && StateMachine.CurrentState != null)
         {
-            if (attackColliderObject != null && attackColliderObject.activeInHierarchy && other.CompareTag("Player"))
+            if (StateMachine.CurrentState == AnticipationState)
             {
-                if (other.TryGetComponent<EntityAbstract>(out var entity))
-                {
-                    entity.TakeDamage(damageDealer.damage);
-                }
+                gizmoColor = Color.yellow;
+            }
+            else if (StateMachine.CurrentState == IdleState)
+            {
+                gizmoColor = Color.cyan;
             }
         }
+        
+        Gizmos.color = gizmoColor;
+
+        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }

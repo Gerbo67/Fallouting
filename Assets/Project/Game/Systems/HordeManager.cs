@@ -1,126 +1,117 @@
-﻿using UnityEngine;
-using Project.Core.Data; // Necesario para EnemyType
-using System.Collections.Generic;
-using Project.Game.Systems.Director;
-using System.Linq;
+﻿
+using UnityEngine;
 using TMPro;
+using Project.Game.Enemies.Scripts; // Necesario para algunas operaciones de lista
 
 namespace Project.Game.Systems
 {
     public class HordeManager : MonoBehaviour
     {
-        [Header("Configuración Central")]
-        [Tooltip("Referencia al GameObject que contiene el MasterFactory y las sub-fábricas.")]
-        [SerializeField] private MasterEnemyFactory masterFactory;
+        [Header("Referencias a Módulos")]
+        [Tooltip("Arrastra aquí el GameObject que contiene el componente NeeplyDirector.")]
+        [SerializeField]
+        private NeeplyDirector director;
 
-        [Header("Configuración de Ronda")]
-        [SerializeField] private int currentRound = 1;
-        [SerializeField] private TextMeshProUGUI roundText;
-        
-        [Header("Dificultad")]
-        [Tooltip("Multiplicador global que afecta los stats generados para los enemigos.")]
-        [Range(0.5f, 5f)] public float globalDifficultyMultiplier = 1f;
+        [Header("UI y Depuración")] [SerializeField]
+        private TextMeshProUGUI roundText;
 
-        // --- Referencias Internas ---
-        private NeeplyDirector _neeply;
-        private List<GameObject> _activeEnemies = new List<GameObject>();
-        private Transform _playerTransform;
+        [Tooltip("Campo de solo lectura para ver la dificultad calculada de la ronda actual.")] [SerializeField]
+        private float currentRoundCost;
 
-        /// <summary>
-        /// Al arrancar, encuentra al jugador y prepara al director Neeply.
-        /// </summary>
+        [Header("Control de Progresión")] [Tooltip("Cada cuántas rondas se introduce un nuevo tipo de enemigo.")]
+        public int roundsBetweenPresentations = 3;
+
+        [Header("Multiplicadores Globales")] 
+        [Range(0.1f, 5f)] public float globalHealthMultiplier = 1f;
+        [Range(0.1f, 5f)] public float globalDamageMultiplier = 1f;
+        [Range(0.1f, 5f)] public float globalSpeedMultiplier = 1f;
+
+        public float CurrentRoundCost
+        {
+            get => currentRoundCost;
+            set => currentRoundCost = value;
+        }
+
         private void Start()
         {
-            _playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
-            if (_playerTransform == null)
+            if (director == null)
             {
-                Debug.LogError("[HordeManager] ¡No se encontró al jugador! El sistema de hordas no puede funcionar.");
-                this.enabled = false;
-                return;
+                director = FindObjectOfType<NeeplyDirector>();
             }
 
-            InitializeDirector();
-            StartNewRound(currentRound);
-        }
-
-        /// <summary>
-        /// Prepara a Neeply. Le pide al MasterFactory la lista de todos los "costes en puntos"
-        /// de enemigos que existen, para que Neeply sepa qué puede pedir.
-        /// </summary>
-        private void InitializeDirector()
-        {
-            if (masterFactory == null)
+            if (director == null)
             {
-                Debug.LogError("[HordeManager] ¡No se ha asignado un MasterFactory en el Inspector!");
-                return;
+                Debug.LogError(
+                    "[HordeManager] ¡NeeplyDirector no encontrado en la escena! El sistema no puede funcionar.");
+                enabled = false;
             }
-            
-            var availableCosts = masterFactory.GetAvailablePointCosts();
-            _neeply = new NeeplyDirector(availableCosts);
         }
 
-        /// <summary>
-        /// Inicia una nueva ronda. Limpia los enemigos anteriores y genera una nueva horda.
-        /// </summary>
-        /// <param name="roundNumber">El número de la ronda a iniciar.</param>
-        public void StartNewRound(int roundNumber)
+        public void UpdateRoundUI(int roundNumber)
         {
-            currentRound = roundNumber;
-            KillAllEnemies();
-            if (roundText != null) roundText.text = $"Ronda: {currentRound}";
-
-            Dictionary<int, int> hordeRequest = _neeply.CookHorde(currentRound);
-            Debug.Log($"[HordeManager] Neeply ha solicitado una horda para la ronda {currentRound}.");
-
-            SpawnEnemiesFromRequest(hordeRequest);
-        }
-
-        /// <summary>
-        /// Recorre el plan de Neeply y pide al MasterFactory que cree los enemigos.
-        /// </summary>
-        private void SpawnEnemiesFromRequest(Dictionary<int, int> request)
-        {
-            foreach(var order in request)
+            if (roundText != null)
             {
-                int pointCost = order.Key;
-                int count = order.Value;
-                
-                List<GameObject> createdEnemies = masterFactory.RequestEnemies(pointCost, count);
-                
-                foreach(var enemy in createdEnemies)
+                roundText.text = $"Ronda: {roundNumber}";
+            }
+        }
+
+        public void GoToNextRoundButton()
+        {
+            if (director != null) director.StartNextRound();
+        }
+
+        public void GoToPreviousRoundButton()
+        {
+            if (director != null)
+            {
+                var targetRound = director.GetCurrentRound() - 1;
+                director.JumpToRound(Mathf.Max(1, targetRound));
+            }
+        }
+
+        /// <summary>
+        /// Busca todos los enemigos activos, elige uno al azar y destruye a todos los demás.
+        /// </summary>
+        public void KillAllButOne()
+        {
+            EnemyBase[] activeEnemies = FindObjectsOfType<EnemyBase>();
+            if (activeEnemies.Length > 1)
+            {
+                int survivorIndex = Random.Range(0, activeEnemies.Length);
+                EnemyBase survivor = activeEnemies[survivorIndex];
+                Debug.Log(
+                    $"[HordeManager] Perdonando la vida a {survivor.name} y destruyendo a los otros {activeEnemies.Length - 1} enemigos.");
+
+                foreach (var enemy in activeEnemies)
                 {
-                    PositionEnemy(enemy);
-                    _activeEnemies.Add(enemy);
+                    if (enemy != survivor)
+                    {
+                        Destroy(enemy.gameObject);
+                    }
                 }
             }
-        }
-        
-        /// <summary>
-        /// Coloca a un enemigo recién creado en una posición aleatoria alrededor del jugador.
-        /// </summary>
-        private void PositionEnemy(GameObject enemyInstance)
-        {
-            if (_playerTransform == null) return;
-
-            var randomDirection = Random.insideUnitCircle.normalized;
-            var spawnDistance = 20f; // Los hacemos aparecer un poco lejos.
-            enemyInstance.transform.position = (Vector2)_playerTransform.position + (randomDirection * spawnDistance);
-        }
-
-        /// <summary>
-        /// Destruye todos los enemigos activos en la escena.
-        /// </summary>
-        private void KillAllEnemies()
-        {
-            foreach (var enemy in _activeEnemies)
+            else
             {
-                if (enemy != null) Destroy(enemy);
+                Debug.LogWarning("[HordeManager] Se necesita más de 1 enemigo para usar 'Matar Todos Menos Uno'.");
             }
-            _activeEnemies.Clear();
         }
 
-        // --- Métodos para botones de UI ---
-        public void GoToNextRoundButton() => StartNewRound(currentRound + 1);
-        public void GoToPreviousRoundButton() => StartNewRound(Mathf.Max(1, currentRound - 1));
+        /// <summary>
+        /// Si queda exactamente un enemigo en la escena, lo destruye.
+        /// </summary>
+        public void KillLastOne()
+        {
+            EnemyBase[] activeEnemies = FindObjectsOfType<EnemyBase>();
+            if (activeEnemies.Length == 1)
+            {
+                Debug.Log($"[HordeManager] Destruyendo al último enemigo: {activeEnemies[0].name}.");
+                Destroy(activeEnemies[0].gameObject);
+            }
+            else
+            {
+                Debug.LogWarning(
+                    $"[HordeManager] Se encontraron {activeEnemies.Length} enemigos. Solo funciona si hay exactamente 1.");
+            }
+        }
     }
 }

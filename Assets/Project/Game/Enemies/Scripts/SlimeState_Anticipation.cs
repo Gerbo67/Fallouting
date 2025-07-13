@@ -6,33 +6,45 @@ namespace Project.Game.Enemies.Scripts
 {
     public class SlimeState_Anticipation : IState
     {
-        private readonly SlimeEnemy owner;
-        private readonly StateMachine stateMachine;
-        private readonly float anticipationTime;
-        private float anticipationTimer;
+        private readonly SlimeEnemy _owner;
+        private readonly StateMachine _stateMachine;
+        private readonly float _anticipationTime;
+        private float _anticipationTimer;
 
         public SlimeState_Anticipation(SlimeEnemy owner, StateMachine stateMachine, float anticipationTime)
         {
-            this.owner = owner;
-            this.stateMachine = stateMachine;
-            this.anticipationTime = anticipationTime;
+            _owner = owner;
+            _stateMachine = stateMachine;
+            _anticipationTime = anticipationTime;
         }
 
         public void Enter()
         {
-            anticipationTimer = anticipationTime;
-            owner.Anim?.SetTrigger("StartDash");
+            _anticipationTimer = _anticipationTime;
+            _owner.Anim?.SetTrigger("StartDash");
+            _owner.EnemyAI.Stop(); 
         }
 
         public void Execute()
         {
-            anticipationTimer -= Time.deltaTime;
-            if (anticipationTimer <= 0)
+            
+            if (_owner.PlayerTarget == null || 
+                Vector2.Distance(_owner.transform.position, _owner.PlayerTarget.position) > _owner.attackRange)
             {
-                stateMachine.ChangeState(owner.DashingState);
+                _stateMachine.ChangeState(_owner.ChasingState);
+                return;
+            }
+            
+
+            _anticipationTimer -= Time.deltaTime;
+            if (_anticipationTimer <= 0)
+            {
+                _stateMachine.ChangeState(_owner.DashingState);
             }
         }
 
-        public void Exit() { }
+        public void Exit() 
+        {
+        }
     }
 }

@@ -10,19 +10,18 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d7bbc1bf4fc64534beb5d5aa0e5eff3d, type: 3}
-  m_Name: EnemyData_New
+  m_Name: SlimeLittleData
   m_EditorClassIdentifier: 
+  enemyName: SlimeLittle
   type: 0
-  pointCost: 1
   prefabs:
   - {fileID: 2307718602379194387, guid: fe09acea78e9a5d4285cfd4773fd5e10, type: 3}
-  minHealth: 10
-  maxHealth: 20
-  minMoveSpeed: 30
-  maxMoveSpeed: 50
-  minDamage: 3
-  maxDamage: 5
+  minHealth: 2
+  maxHealth: 3
+  minMoveSpeed: 7
+  maxMoveSpeed: 8
+  minDamage: 1
+  maxDamage: 2
   minAttackDelay: 1
   maxAttackDelay: 2
-  minDashForce: 5
-  maxDashForce: 8
+  baseDifficultyScore: 14.5

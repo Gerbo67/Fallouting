@@ -1,31 +1,38 @@
-﻿using UnityEngine;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Project.Core.Data;
+using UnityEngine;
 
-namespace Project.Core.Data
+[CreateAssetMenu(fileName = "EnemyData_New", menuName = "Sistema de Hordas/Enemy Data")]
+public class EnemyData : ScriptableObject
 {
-    [CreateAssetMenu(fileName = "EnemyData_New", menuName = "Enemies/Enemy Data")]
-    public class EnemyData : ScriptableObject
+    [Header("Identificación")]
+    public string enemyName;
+    public EnemyType type;
+    public List<GameObject> prefabs;
+
+    [Header("Stats Base (Valores de Juego)")]
+    public int minHealth = 10;
+    public int maxHealth = 20;
+
+    public float minMoveSpeed = 2f;
+    public float maxMoveSpeed = 3f;
+
+    public int minDamage = 3;
+    public int maxDamage = 5;
+
+    public float minAttackDelay = 1f;
+    public float maxAttackDelay = 2f;
+
+    [Header("Puntuación de Dificultad (IA)")]
+    public float baseDifficultyScore;
+
+    private void OnValidate()
     {
-        [Header("Identificación")]
-        public EnemyType type;
-        public int pointCost;
-        public List<GameObject> prefabs;
-
-        [Header("Stats Base (Valores de Juego)")]
-        public int minHealth = 10;
-        public int maxHealth = 20;
-
-        public float minMoveSpeed = 2f;
-        public float maxMoveSpeed = 3f;
-
-        public int minDamage = 3;
-        public int maxDamage = 5;
-
-        public float minAttackDelay = 1f;
-        public float maxAttackDelay = 2f;
-
-        [Header("Stats Únicos (Si Aplica)")]
-        public float minDashForce = 5f;
-        public float maxDashForce = 8f;
+        float avgHealth = (minHealth + maxHealth) / 2f;
+        float avgDamage = (minDamage + maxDamage) / 2f;
+        float avgAttackDelay = (minAttackDelay + maxAttackDelay) / 2f;
+        float avgSpeed = (minMoveSpeed + maxMoveSpeed) / 2f;
+        float dps = (avgAttackDelay > 0) ? (avgDamage / avgAttackDelay) : avgDamage;
+        baseDifficultyScore = (avgHealth * 0.5f) + (dps * 2.0f) + (avgSpeed * 1.5f);
     }
 }

@@ -1,24 +1,23 @@
 ﻿using System.Collections;
 using Project.Core.Interfaces;
-using Project.Game.Enemies.Scripts;
 using Project.Game.Systems;
 using UnityEngine;
 
 public class SlimeState_Dash : IState
 {
-    private readonly SlimeEnemy owner;
-    private readonly StateMachine stateMachine;
-    private Coroutine dashCoroutine;
+    private readonly SlimeEnemy _owner;
+    private readonly StateMachine _stateMachine;
+    private Coroutine _dashCoroutine;
 
     public SlimeState_Dash(SlimeEnemy owner, StateMachine stateMachine)
     {
-        this.owner = owner;
-        this.stateMachine = stateMachine;
+        _owner = owner;
+        _stateMachine = stateMachine;
     }
 
     public void Enter()
     {
-        dashCoroutine = owner.StartCoroutine(PerformDash());
+        _dashCoroutine = _owner.StartCoroutine(PerformDash());
     }
 
     public void Execute()
@@ -27,56 +26,56 @@ public class SlimeState_Dash : IState
 
     public void Exit()
     {
-        if (dashCoroutine != null)
+        if (_dashCoroutine != null)
         {
-            owner.StopCoroutine(dashCoroutine);
+            _owner.StopCoroutine(_dashCoroutine);
         }
     }
 
     private IEnumerator PerformDash()
     {
-        if (owner.PlayerTarget == null)
+        if (_owner.PlayerTarget == null)
         {
-            stateMachine.ChangeState(owner.IdleState);
+            _stateMachine.ChangeState(_owner.IdleState);
             yield break;
         }
 
-        Vector2 startPosition = owner.transform.position;
-        Vector2 targetPosition = owner.PlayerTarget.position;
+        Vector2 startPosition = _owner.transform.position;
+        Vector2 targetPosition = _owner.PlayerTarget.position;
 
         var direction = (targetPosition - startPosition).normalized;
         var distanceToTarget = Vector2.Distance(startPosition, targetPosition);
 
         // --- Detección de Colisión con Raycast ---
         // Lanzar un sensor circular desde el inicio para ver si hay un obstáculo en el camino.
-        RaycastHit2D hit = Physics2D.CircleCast(startPosition, owner.attackColliderRadius, direction, distanceToTarget,
-            owner.collisionLayers);
+        RaycastHit2D hit = Physics2D.CircleCast(startPosition, _owner.attackColliderRadius, direction, distanceToTarget,
+            _owner.collisionLayers);
 
         if (hit.collider != null)
         {
-            targetPosition = hit.point - direction * (owner.attackColliderRadius * 0.9f);
+            targetPosition = hit.point - direction * (_owner.attackColliderRadius * 0.9f);
         }
 
-        float distance = Vector2.Distance(startPosition, targetPosition);
-        float duration = distance / owner.dashSpeed; 
+        var distance = Vector2.Distance(startPosition, targetPosition);
+        var duration = distance / _owner.dashSpeed; 
         float elapsedTime = 0;
 
         while (elapsedTime < duration)
         {
             var percentage = elapsedTime / duration;
-            owner.EnemyAI.GetComponent<Rigidbody2D>()
+            _owner.EnemyAI.GetComponent<Rigidbody2D>()
                 .MovePosition(Vector2.Lerp(startPosition, targetPosition, percentage));
 
-            var scaleEffect = 1.0f + (Mathf.Sin(percentage * Mathf.PI) * (owner.dashScaleMultiplier - 1.0f));
-            owner.spriteTransform.localScale = owner.initialScale * scaleEffect;
+            var scaleEffect = 1.0f + (Mathf.Sin(percentage * Mathf.PI) * (_owner.dashScaleMultiplier - 1.0f));
+            _owner.spriteTransform.localScale = _owner.initialScale * scaleEffect;
 
             elapsedTime += Time.fixedDeltaTime;
             yield return new WaitForFixedUpdate();
         }
 
-        owner.EnemyAI.GetComponent<Rigidbody2D>().MovePosition(targetPosition);
-        owner.spriteTransform.localScale = owner.initialScale;
+        _owner.EnemyAI.GetComponent<Rigidbody2D>().MovePosition(targetPosition);
+        _owner.spriteTransform.localScale = _owner.initialScale;
 
-        stateMachine.ChangeState(owner.IdleState);
+        _stateMachine.ChangeState(_owner.IdleState);
     }
 }

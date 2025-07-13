@@ -6,31 +6,31 @@ namespace Project.Game.Enemies.Scripts
 {
     public class SlimeState_Idle : IState
     {
-        private readonly SlimeEnemy owner;
-        private readonly StateMachine stateMachine;
-        private float idleTimer;
+        private readonly SlimeEnemy _owner;
+        private readonly StateMachine _stateMachine;
+        private float _idleTimer;
 
         public SlimeState_Idle(SlimeEnemy owner, StateMachine stateMachine)
         {
-            this.owner = owner;
-            this.stateMachine = stateMachine;
+            _owner = owner;
+            _stateMachine = stateMachine;
         }
 
         public void Enter()
         {
-            owner.ActivateIdleCollider();
-            owner.EnemyAI.Stop();
-            owner.Anim?.SetBool("IsChasing", false);
+            _owner.ActivateIdleCollider();
+            _owner.EnemyAI.Stop();
+            _owner.Anim?.SetBool("IsChasing", false);
 
-            idleTimer = owner.attackDelay;
+            _idleTimer = _owner.attackDelay;
         }
 
         public void Execute()
         {
-            idleTimer -= Time.deltaTime;
-            if (idleTimer <= 0)
+            _idleTimer -= Time.deltaTime;
+            if (_idleTimer <= 0)
             {
-                stateMachine.ChangeState(owner.ChasingState);
+                _stateMachine.ChangeState(_owner.ChasingState);
             }
         }
 
