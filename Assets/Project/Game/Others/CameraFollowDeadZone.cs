@@ -3,44 +3,37 @@ using System.Collections;
 
 public class CameraFollowDeadZone : MonoBehaviour
 {
-    [Header("Referencias")]
-    public Transform target;
+    [Header("Referencias")] public Transform target;
 
     [Header("Configuración de la Zona Muerta")]
-    [Tooltip("El radio del círculo central donde la cámara no se moverá.")]
     public float deadZoneRadius = 2.0f;
 
     [Header("Configuración de Movimiento")]
-    [Tooltip("Qué tan suavemente se moverá la cámara. Un valor más pequeño es más rápido.")]
-    public float smoothSpeed = 0.125f;
+    public float smoothSpeed = 3.0f;
 
     [Header("Configuración de Cinemática")]
     public float zoomInFactor = 0.5f;
+
     public float zoomAnimationTime = 0.5f;
 
-    private Vector3 offset;
     private Vector3 velocity = Vector3.zero;
-
     private Camera _cameraComponent;
     private Coroutine _focusCoroutine;
     private bool _isFocusingOnEnemy = false;
-    private float _originalFieldOfView;
+    private float _originalOrthographicSize;
 
     void Start()
     {
-        if (target != null)
-        {
-            offset = transform.position - target.position;
-        }
         _cameraComponent = GetComponent<Camera>();
-        if (_cameraComponent != null)
+        if (_cameraComponent.orthographic)
         {
-            _originalFieldOfView = _cameraComponent.fieldOfView;
+            _originalOrthographicSize = _cameraComponent.orthographicSize;
         }
         else
         {
-            Debug.LogError("Este script requiere un componente 'Camera' en el mismo GameObject.", this);
-            enabled = false;
+            Debug.LogError(
+                "La cámara no es Ortográfica. El zoom no funcionará correctamente. Por favor, cámbiala a 'Orthographic' en el Inspector.",
+                this);
         }
     }
 
@@ -48,83 +41,91 @@ public class CameraFollowDeadZone : MonoBehaviour
     {
         if (target == null || _isFocusingOnEnemy)
         {
-            if(target == null) Debug.LogWarning("No se ha asignado un 'target' a la cámara.");
             return;
         }
 
-        FollowPlayer();
+        FollowPlayerWithDeadZone();
     }
 
-    private void FollowPlayer()
+    private void FollowPlayerWithDeadZone()
     {
-        var cameraPositionXZ = new Vector3(transform.position.x, 0, transform.position.z);
-        var targetPositionXZ = new Vector3(target.position.x, 0, target.position.z);
-        var distance = Vector3.Distance(cameraPositionXZ, targetPositionXZ);
+        var cameraPositionXY = new Vector3(transform.position.x, transform.position.y, 0);
+        var targetPositionXY = new Vector3(target.position.x, target.position.y, 0);
+
+        float distance = Vector3.Distance(cameraPositionXY, targetPositionXY);
 
         if (distance > deadZoneRadius)
         {
-            Vector3 targetPosition = target.position + offset;
-            transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, smoothSpeed);
+            var direction = (targetPositionXY - cameraPositionXY).normalized;
+            var moveDistance = distance - deadZoneRadius;
+
+            var newPosition = transform.position + direction * moveDistance;
+
+            newPosition.z = transform.position.z;
+
+            transform.position = Vector3.Lerp(transform.position, newPosition, smoothSpeed * Time.deltaTime);
         }
     }
 
-    /// <param name="enemyTarget">El transform del enemigo a seguir.</param>
-    /// <param name="duration">Cuántos segundos debe durar el enfoque.</param>
     public void FocusOnEnemy(Transform enemyTarget, float duration)
     {
         if (_focusCoroutine != null)
         {
             StopCoroutine(_focusCoroutine);
         }
+
         _focusCoroutine = StartCoroutine(FocusSequence(enemyTarget, duration));
     }
 
     private IEnumerator FocusSequence(Transform enemyTarget, float duration)
     {
         _isFocusingOnEnemy = true;
-        float targetFOV = _originalFieldOfView * zoomInFactor;
-        float elapsedTime = 0f;
+        var targetOrthoSize = _originalOrthographicSize * zoomInFactor;
+        var elapsedTime = 0f;
 
-        // 1. Animación de Zoom In
+        // Zoom In
+        var startOrthoSize = _cameraComponent.orthographicSize;
         while (elapsedTime < zoomAnimationTime)
         {
-            _cameraComponent.fieldOfView = Mathf.Lerp(_originalFieldOfView, targetFOV, elapsedTime / zoomAnimationTime);
+            _cameraComponent.orthographicSize =
+                Mathf.Lerp(startOrthoSize, targetOrthoSize, elapsedTime / zoomAnimationTime);
             elapsedTime += Time.deltaTime;
             yield return null;
         }
-        _cameraComponent.fieldOfView = targetFOV;
 
-        float followUntilTime = Time.time + duration;
+        _cameraComponent.orthographicSize = targetOrthoSize;
+
+        // Seguir al enemigo
+        var followUntilTime = Time.time + duration;
         while (Time.time < followUntilTime)
         {
             if (enemyTarget == null) break;
-            
-            Vector3 targetPosition = enemyTarget.position + offset;
-            transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, smoothSpeed);
+
+            Vector3 targetPosition = new Vector3(enemyTarget.position.x, enemyTarget.position.y, transform.position.z);
+            transform.position = Vector3.SmoothDamp(transform.position, targetPosition, ref velocity, 0.125f);
             yield return null;
         }
-        
+
+        // Zoom Out
         elapsedTime = 0f;
-        float currentFOV = _cameraComponent.fieldOfView;
+        startOrthoSize = _cameraComponent.orthographicSize;
         while (elapsedTime < zoomAnimationTime)
         {
-            _cameraComponent.fieldOfView = Mathf.Lerp(currentFOV, _originalFieldOfView, elapsedTime / zoomAnimationTime);
+            _cameraComponent.orthographicSize = Mathf.Lerp(startOrthoSize, _originalOrthographicSize,
+                elapsedTime / zoomAnimationTime);
             elapsedTime += Time.deltaTime;
             yield return null;
         }
-        _cameraComponent.fieldOfView = _originalFieldOfView;
+
+        _cameraComponent.orthographicSize = _originalOrthographicSize;
 
         _isFocusingOnEnemy = false;
         _focusCoroutine = null;
     }
 
-
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
-        if (target != null)
-        {
-            Gizmos.DrawWireSphere(target.position, deadZoneRadius);
-        }
+        Gizmos.DrawWireSphere(new Vector3(transform.position.x, transform.position.y, 0), deadZoneRadius);
     }
 }

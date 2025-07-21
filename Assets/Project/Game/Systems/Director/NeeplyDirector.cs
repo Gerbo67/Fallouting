@@ -14,16 +14,17 @@ public class NeeplyDirector : MonoBehaviour
 
     [Header("Referencias a Módulos")] public HordeManager hordeManager;
     public GeneticAlgorithmDirector aiDirector;
-    [Tooltip("Arrastra aquí el objeto de la cámara principal que tiene el script CameraFollowDeadZone.")]
     public CameraFollowDeadZone mainCamera;
-    [Tooltip("Cuántos segundos la cámara se enfocará en un nuevo enemigo durante su presentación.")]
-    public float presentationFocusDuration = 3.0f;
 
     [Header("Configuración de Progresión")]
     public List<EnemyData> enemyProgressionOrder;
 
-    private readonly Dictionary<EnemyType, IEnemyFactory> _factories = new();
+    public float presentationFocusDuration = 3.0f;
 
+    [Header("Configuración de Spawning")] public Vector3 mapCenter = Vector3.zero;
+    public float spawnScatter = 10f;
+
+    private readonly Dictionary<EnemyType, IEnemyFactory> _factories = new();
     private int _currentRoundNumber = 0;
     private readonly List<EnemyData> _unlockedEnemies = new();
     private readonly List<GameObject> _activeEnemies = new();
@@ -31,27 +32,13 @@ public class NeeplyDirector : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this)
-        {
-            Destroy(gameObject);
-        }
-        else
-        {
-            Instance = this;
-        }
-
+        if (Instance != null && Instance != this) Destroy(gameObject);
+        else Instance = this;
         RegisterFactories();
-
         _playerTransform = GameObject.FindGameObjectWithTag("Player")?.transform;
         if (_playerTransform == null)
         {
             Debug.LogError("[NeeplyDirector] No se encontró un 'Player'.", this);
-            enabled = false;
-        }
-        
-        if (mainCamera == null)
-        {
-            Debug.LogError("[NeeplyDirector] La referencia a 'mainCamera' no está asignada en el Inspector.", this);
             enabled = false;
         }
     }
@@ -61,18 +48,24 @@ public class NeeplyDirector : MonoBehaviour
         JumpToRound(1);
     }
 
+    private void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.white;
+        Gizmos.DrawCube(mapCenter, Vector3.one * 2);
+
+        if (_playerTransform != null)
+        {
+            Gizmos.color = Color.cyan;
+            Vector3 oppositePoint = (mapCenter - _playerTransform.position) + mapCenter;
+            Gizmos.DrawWireSphere(oppositePoint, spawnScatter);
+            Gizmos.DrawLine(_playerTransform.position, oppositePoint);
+        }
+    }
+
     public void OnEnemyDied(GameObject enemy)
     {
-        if (_activeEnemies.Contains(enemy))
-        {
-            _activeEnemies.Remove(enemy);
-        }
-
-        if (_activeEnemies.Count == 0)
-        {
-            Debug.Log("<color=green>¡Ronda completada!</color> Iniciando la siguiente...");
-            StartCoroutine(StartNextRoundAfterDelay(2.0f));
-        }
+        if (_activeEnemies.Contains(enemy)) _activeEnemies.Remove(enemy);
+        if (_activeEnemies.Count == 0) StartCoroutine(StartNextRoundAfterDelay(2.0f));
     }
 
     private IEnumerator StartNextRoundAfterDelay(float delay)
@@ -84,18 +77,23 @@ public class NeeplyDirector : MonoBehaviour
     private void RegisterFactories()
     {
         var factoryComponents = FindObjectsOfType<MonoBehaviour>().OfType<IEnemyFactory>();
-
         foreach (var factory in factoryComponents)
         {
             foreach (var type in factory.ManagedEnemyTypes)
             {
-                if (!_factories.ContainsKey(type))
-                {
-                    _factories.Add(type, factory);
-                    Debug.Log($"[NeeplyDirector] Fábrica para '{type}' registrada.");
-                }
+                if (!_factories.ContainsKey(type)) _factories.Add(type, factory);
             }
         }
+    }
+
+    private void ClearCurrentHorde()
+    {
+        for (int i = _activeEnemies.Count - 1; i >= 0; i--)
+        {
+            if (_activeEnemies[i] != null) Destroy(_activeEnemies[i]);
+        }
+
+        _activeEnemies.Clear();
     }
 
     private GameObject InstantiateEnemy(EnemyData enemyData)
@@ -104,60 +102,42 @@ public class NeeplyDirector : MonoBehaviour
         {
             Vector3 spawnPosition = GetRandomSpawnPosition();
             GameObject newEnemyInstance = factory.CreateEnemy(enemyData.type, spawnPosition);
-
             if (newEnemyInstance != null)
             {
                 _activeEnemies.Add(newEnemyInstance);
-                return newEnemyInstance; // Devuelve el GameObject creado
+                return newEnemyInstance;
             }
         }
-        else
-        {
-            Debug.LogWarning($"[NeeplyDirector] No se encontró una fábrica registrada para el tipo {enemyData.type}.");
-        }
+
         return null;
     }
-    
+
     private void InstantiateRound(List<EnemyData> roundPlan)
     {
         ClearCurrentHorde();
-        foreach (var enemyData in roundPlan)
-        {
-            InstantiateEnemy(enemyData);
-        }
-    }
-
-    private void ClearCurrentHorde()
-    {
-        _activeEnemies.ForEach(Destroy);
-        _activeEnemies.Clear();
+        foreach (var enemyData in roundPlan) InstantiateEnemy(enemyData);
     }
 
     public void StartNextRound()
     {
         _currentRoundNumber++;
-        hordeManager?.UpdateRoundUI(_currentRoundNumber);
+        if (hordeManager != null) hordeManager.UpdateRoundUI(_currentRoundNumber);
 
-        var unlockedTypesCount = 1 + ((_currentRoundNumber - 1) / hordeManager.roundsBetweenPresentations);
+        var unlockedTypesCount = 1 + ((_currentRoundNumber - 1) /
+                                      (hordeManager != null ? hordeManager.roundsBetweenPresentations : 5));
         unlockedTypesCount = Mathf.Min(unlockedTypesCount, enemyProgressionOrder.Count);
-
         _unlockedEnemies.Clear();
-        for (int i = 0; i < unlockedTypesCount; i++)
-        {
-            _unlockedEnemies.Add(enemyProgressionOrder[i]);
-        }
+        for (var i = 0; i < unlockedTypesCount; i++) _unlockedEnemies.Add(enemyProgressionOrder[i]);
 
-        var isPresentationRound = (_currentRoundNumber - 1) % hordeManager.roundsBetweenPresentations == 0;
-        var enemyIndex = (_currentRoundNumber - 1) / hordeManager.roundsBetweenPresentations;
+        var presentationRoundsInterval = (hordeManager != null ? hordeManager.roundsBetweenPresentations : 5);
+        var isPresentationRound = (_currentRoundNumber - 1) % presentationRoundsInterval == 0;
+        var enemyIndex = (_currentRoundNumber - 1) / presentationRoundsInterval;
 
         if (isPresentationRound && enemyIndex < enemyProgressionOrder.Count)
         {
             var newEnemyData = enemyProgressionOrder[enemyIndex];
-            Debug.Log($"<color=cyan>Ronda de Presentación {_currentRoundNumber}: Presentando a {newEnemyData.enemyName}.</color>");
-            
             ClearCurrentHorde();
-            GameObject presentedEnemy = InstantiateEnemy(newEnemyData);
-
+            var presentedEnemy = InstantiateEnemy(newEnemyData);
             if (presentedEnemy != null && mainCamera != null)
             {
                 mainCamera.FocusOnEnemy(presentedEnemy.transform, presentationFocusDuration);
@@ -165,7 +145,6 @@ public class NeeplyDirector : MonoBehaviour
         }
         else
         {
-            Debug.Log($"<color=yellow>Ronda Procedural {_currentRoundNumber}: Usando {string.Join(", ", _unlockedEnemies.Select(e => e.enemyName))}.</color>");
             GenerateProceduralRound();
         }
     }
@@ -179,48 +158,37 @@ public class NeeplyDirector : MonoBehaviour
             AllowedEnemies = _unlockedEnemies
         };
         var roundPlan = aiDirector.GenerateRound(settings);
-        hordeManager.CurrentRoundCost = roundPlan.Sum(e => e.baseDifficultyScore);
+        if (hordeManager != null) hordeManager.CurrentRoundCost = roundPlan.Sum(e => e.baseDifficultyScore);
         InstantiateRound(roundPlan);
     }
 
     public void JumpToRound(int roundNumber)
     {
         _currentRoundNumber = roundNumber - 1;
-        _unlockedEnemies.Clear();
         StartNextRound();
     }
 
     private Vector3 GetRandomSpawnPosition()
     {
-        float minSpawnRadius = 5f, maxSpawnRadius = 10f;
         if (_playerTransform == null) return Vector3.zero;
+
+        var oppositePoint = (mapCenter - _playerTransform.position) + mapCenter;
 
         for (int i = 0; i < 30; i++)
         {
-            var randomDirection = Random.insideUnitCircle.normalized;
-            var randomDistance = Random.Range(minSpawnRadius, maxSpawnRadius);
-            Vector3 potentialPosition = _playerTransform.position +
-                                        new Vector3(randomDirection.x, randomDirection.y, 0) * randomDistance;
+            var randomOffset = Random.insideUnitCircle * spawnScatter;
+            var potentialPosition = oppositePoint + new Vector3(randomOffset.x, randomOffset.y, 0);
 
-            NavMeshHit hit;
-            if (NavMesh.SamplePosition(potentialPosition, out hit, 5.0f, NavMesh.AllAreas))
+            if (NavMesh.SamplePosition(potentialPosition, out NavMeshHit hit, spawnScatter * 1.5f, NavMesh.AllAreas))
             {
                 return hit.position;
             }
         }
 
         Debug.LogWarning(
-            "[NeeplyDirector] No se pudo encontrar una posición de spawn válida en el NavMesh. El enemigo aparecerá en la posición del jugador.");
+            "No se pudo encontrar una posición de spawn lejana válida. Usando la posición del jugador como último recurso.");
         return _playerTransform.position;
     }
 
-
-    /// <summary>
-    /// Devuelve el número de la ronda actual.
-    /// </summary>
-    /// <returns>El número de la ronda.</returns>
-    public int GetCurrentRound()
-    {
-        return _currentRoundNumber;
-    }
+    public int GetCurrentRound() => _currentRoundNumber;
 }
