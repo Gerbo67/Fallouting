@@ -1,6 +1,6 @@
-﻿// EnemyBase.cs (MODIFICADO)
-using Project.Core.Entities;
+﻿using Project.Core.Entities;
 using Project.Game.Systems;
+using Project.Game.Systems.Director;
 using UnityEngine;
 
 namespace Project.Game.Enemies.Scripts
