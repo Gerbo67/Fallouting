@@ -14,6 +14,10 @@ public class NeeplyDirector : MonoBehaviour
 
     [Header("Referencias a Módulos")] public HordeManager hordeManager;
     public GeneticAlgorithmDirector aiDirector;
+    [Tooltip("Arrastra aquí el objeto de la cámara principal que tiene el script CameraFollowDeadZone.")]
+    public CameraFollowDeadZone mainCamera;
+    [Tooltip("Cuántos segundos la cámara se enfocará en un nuevo enemigo durante su presentación.")]
+    public float presentationFocusDuration = 3.0f;
 
     [Header("Configuración de Progresión")]
     public List<EnemyData> enemyProgressionOrder;
@@ -42,6 +46,12 @@ public class NeeplyDirector : MonoBehaviour
         if (_playerTransform == null)
         {
             Debug.LogError("[NeeplyDirector] No se encontró un 'Player'.", this);
+            enabled = false;
+        }
+        
+        if (mainCamera == null)
+        {
+            Debug.LogError("[NeeplyDirector] La referencia a 'mainCamera' no está asignada en el Inspector.", this);
             enabled = false;
         }
     }
@@ -88,27 +98,32 @@ public class NeeplyDirector : MonoBehaviour
         }
     }
 
+    private GameObject InstantiateEnemy(EnemyData enemyData)
+    {
+        if (_factories.TryGetValue(enemyData.type, out IEnemyFactory factory))
+        {
+            Vector3 spawnPosition = GetRandomSpawnPosition();
+            GameObject newEnemyInstance = factory.CreateEnemy(enemyData.type, spawnPosition);
+
+            if (newEnemyInstance != null)
+            {
+                _activeEnemies.Add(newEnemyInstance);
+                return newEnemyInstance; // Devuelve el GameObject creado
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[NeeplyDirector] No se encontró una fábrica registrada para el tipo {enemyData.type}.");
+        }
+        return null;
+    }
+    
     private void InstantiateRound(List<EnemyData> roundPlan)
     {
         ClearCurrentHorde();
-
         foreach (var enemyData in roundPlan)
         {
-            if (_factories.TryGetValue(enemyData.type, out IEnemyFactory factory))
-            {
-                Vector3 spawnPosition = GetRandomSpawnPosition();
-                GameObject newEnemyInstance = factory.CreateEnemy(enemyData.type, spawnPosition);
-
-                if (newEnemyInstance != null)
-                {
-                    _activeEnemies.Add(newEnemyInstance);
-                }
-            }
-            else
-            {
-                Debug.LogWarning(
-                    $"[NeeplyDirector] No se encontró una fábrica registrada para el tipo {enemyData.type}.");
-            }
+            InstantiateEnemy(enemyData);
         }
     }
 
@@ -138,11 +153,15 @@ public class NeeplyDirector : MonoBehaviour
         if (isPresentationRound && enemyIndex < enemyProgressionOrder.Count)
         {
             var newEnemyData = enemyProgressionOrder[enemyIndex];
-
-            var plan = new List<EnemyData> { newEnemyData };
             Debug.Log($"<color=cyan>Ronda de Presentación {_currentRoundNumber}: Presentando a {newEnemyData.enemyName}.</color>");
-        
-            InstantiateRound(plan);
+            
+            ClearCurrentHorde();
+            GameObject presentedEnemy = InstantiateEnemy(newEnemyData);
+
+            if (presentedEnemy != null && mainCamera != null)
+            {
+                mainCamera.FocusOnEnemy(presentedEnemy.transform, presentationFocusDuration);
+            }
         }
         else
         {
