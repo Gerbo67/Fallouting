@@ -16,6 +16,10 @@ MonoBehaviour:
   type: 0
   prefabs:
   - {fileID: 2307718602379194387, guid: fe09acea78e9a5d4285cfd4773fd5e10, type: 3}
+  - {fileID: 2307718602379194387, guid: d9938863070fbf44793b964b94dd7f02, type: 3}
+  - {fileID: 2307718602379194387, guid: 8ac6787529e3cea4f9cc4c7ff7d625b6, type: 3}
+  - {fileID: 2307718602379194387, guid: ac70c4573c628e84c8d013dad11c2e61, type: 3}
+  - {fileID: 2307718602379194387, guid: cbc671829b7b8b2418609d4abc4b9ca2, type: 3}
   minHealth: 2
   maxHealth: 3
   minMoveSpeed: 7

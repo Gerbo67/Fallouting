@@ -27,7 +27,6 @@ namespace Project.Game.Enemies.Scripts
 
         public void Execute()
         {
-            
             if (_owner.PlayerTarget == null || 
                 Vector2.Distance(_owner.transform.position, _owner.PlayerTarget.position) > _owner.attackRange)
             {
@@ -35,7 +34,6 @@ namespace Project.Game.Enemies.Scripts
                 return;
             }
             
-
             _anticipationTimer -= Time.deltaTime;
             if (_anticipationTimer <= 0)
             {

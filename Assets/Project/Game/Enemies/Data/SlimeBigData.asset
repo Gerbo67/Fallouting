@@ -19,6 +19,7 @@ MonoBehaviour:
   - {fileID: 1096891685315123607, guid: 545df9d2fb89ae04ea58720b6f024595, type: 3}
   - {fileID: 6131675030087993633, guid: 2124fce753f12b84fb22221b7ae1e2fc, type: 3}
   - {fileID: 6131675030087993633, guid: 21f0cbcf5b1b9f84dafab77a4ed9d78a, type: 3}
+  - {fileID: 6131675030087993633, guid: 3208ee4d1edac2d47a6aeadeda5ada2e, type: 3}
   minHealth: 10
   maxHealth: 9
   minMoveSpeed: 1

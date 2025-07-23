@@ -1,42 +1,38 @@
 ﻿using Project.Game.Enemies.Scripts;
+using Project.Game.Enemies.Sounds;
 using Project.Game.Player.Scripts;
 using Project.Game.Systems;
 using UnityEngine;
 
 public sealed class SlimeEnemy : EnemyBase
 {
-    // --- Stats Base (Inyectadas por la fábrica) ---
     private int _health;
     private float _moveSpeed;
     private int _damage;
     private float _attackDelay;
 
-    // --- CORRECCIÓN: Implementación con "override" ---
     public override int health { get => _health; set => _health = value; }
     public override float moveSpeed { get => _moveSpeed; set => _moveSpeed = value; }
     public override int damage { get => _damage; set => _damage = value; }
     public override float attackDelay { get => _attackDelay; set => _attackDelay = value; }
 
-    // --- Componentes y Referencias ---
     [Header("Referencias de Componentes")]
     public Transform spriteTransform;
     public GameObject attackColliderObject;
     public GameObject idleColliderObject;
     public Animator Anim { get; private set; }
+    public SlimeAudio Audio { get; private set; }
     public Vector3 initialScale;
 
-    // --- Parámetros de Comportamiento (Calculados en AdaptStats) ---
     public float dashSpeed { get; private set; }
     public float attackRange { get; private set; }
     public float dashAnticipationTime { get; private set; }
     
-    // --- RESTAURADO: Parámetros para el Dash con Raycast ---
     [Header("Configuración del Dash")]
     public float attackColliderRadius = 0.5f;
     public LayerMask collisionLayers;
     public float dashScaleMultiplier = 1.5f;
 
-    // --- Máquina de Estados ---
     private StateMachine StateMachine { get; set; }
     public SlimeState_Idle IdleState { get; private set; }
     public SlimeState_Chasing ChasingState { get; private set; }
@@ -47,6 +43,7 @@ public sealed class SlimeEnemy : EnemyBase
     {
         base.Awake();
         Anim = GetComponent<Animator>();
+        Audio = GetComponent<SlimeAudio>();
         if(spriteTransform) initialScale = spriteTransform.localScale;
         
         AdaptStats();
@@ -91,9 +88,9 @@ public sealed class SlimeEnemy : EnemyBase
     {
         StateMachine = new StateMachine();
         IdleState = new SlimeState_Idle(this, StateMachine);
-        ChasingState = new SlimeState_Chasing(this, StateMachine, attackRange);
+        ChasingState = new SlimeState_Chasing(this, StateMachine, Audio);
         AnticipationState = new SlimeState_Anticipation(this, StateMachine, dashAnticipationTime);
-        DashingState = new SlimeState_Dash(this, StateMachine);
+        DashingState = new SlimeState_Dash(this, StateMachine, Audio);
     }
     
     public void ActivateAttackCollider()
@@ -110,7 +107,6 @@ public sealed class SlimeEnemy : EnemyBase
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        // Solo hace daño si está en el estado de Dash y choca con el jugador.
         if (StateMachine.CurrentState == DashingState && other.CompareTag("Player"))
         {
             if(other.TryGetComponent<Player>(out var player))
@@ -128,7 +124,6 @@ public sealed class SlimeEnemy : EnemyBase
     
     protected override void Die()
     {
-        // Notificar muerte al Neeply
         NotifyDirectorOfDeath();
         
         enabled = false;
@@ -138,12 +133,7 @@ public sealed class SlimeEnemy : EnemyBase
         
         Destroy(gameObject, 2f);
     }
-
-
-    /// <summary>
-    /// Dibuja Gizmos en el Editor de Unity para depuración visual.
-    /// Este método se llama automáticamente cuando el objeto está seleccionado.
-    /// </summary>
+    
     private void OnDrawGizmosSelected()
     {
         Color gizmoColor = Color.red;

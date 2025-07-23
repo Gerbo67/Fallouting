@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using Project.Core.Interfaces;
+using Project.Game.Enemies.Sounds;
 using Project.Game.Systems;
 using UnityEngine;
 
@@ -7,12 +8,14 @@ public class SlimeState_Dash : IState
 {
     private readonly SlimeEnemy _owner;
     private readonly StateMachine _stateMachine;
+    private readonly SlimeAudio _audio;
     private Coroutine _dashCoroutine;
 
-    public SlimeState_Dash(SlimeEnemy owner, StateMachine stateMachine)
+    public SlimeState_Dash(SlimeEnemy owner, StateMachine stateMachine, SlimeAudio audio)
     {
         _owner = owner;
         _stateMachine = stateMachine;
+        _audio = audio;
     }
 
     public void Enter()
@@ -30,10 +33,13 @@ public class SlimeState_Dash : IState
         {
             _owner.StopCoroutine(_dashCoroutine);
         }
+        _owner.spriteTransform.localScale = _owner.initialScale;
     }
 
     private IEnumerator PerformDash()
     {
+        _audio?.PlayDashStart();
+
         if (_owner.PlayerTarget == null)
         {
             _stateMachine.ChangeState(_owner.IdleState);
@@ -45,9 +51,7 @@ public class SlimeState_Dash : IState
 
         var direction = (targetPosition - startPosition).normalized;
         var distanceToTarget = Vector2.Distance(startPosition, targetPosition);
-
-        // --- Detección de Colisión con Raycast ---
-        // Lanzar un sensor circular desde el inicio para ver si hay un obstáculo en el camino.
+        
         RaycastHit2D hit = Physics2D.CircleCast(startPosition, _owner.attackColliderRadius, direction, distanceToTarget,
             _owner.collisionLayers);
 
@@ -76,6 +80,8 @@ public class SlimeState_Dash : IState
         _owner.EnemyAI.GetComponent<Rigidbody2D>().MovePosition(targetPosition);
         _owner.spriteTransform.localScale = _owner.initialScale;
 
+        _audio?.PlayDashEnd();
+        
         _stateMachine.ChangeState(_owner.IdleState);
     }
 }
